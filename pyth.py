@@ -80,7 +80,7 @@ def findMinDist(npcData, princesses, dragon, start):
     return (start, dragon) + order, mini
 
 def karp(npcData, princesses, dragon, start):
-    DIST, POS = 0, 1
+    DIST, POS, PAT = 0, 1, 2
     sets = [{frozenset(): (npcData[start][dragon].dist, dragon)}]
     princesses = frozenset(princesses)
     '''
@@ -89,16 +89,7 @@ def karp(npcData, princesses, dragon, start):
         for comb in combinations(princesses, row):
             for prevComb in combinations(comb, len(comb)-1):
                 prevComb = frozenset(prevComb)
-                #prevComb = sets[row-1][frozenset(subcomb)]
             
-
-            #for prevComb in sets[row-1]:
-                comb = frozenset(comb)
-                finish = list(comb - prevComb)[0]   # only one and first element can be there
-                begin = sets[row-1][prevComb][POS]
-                cost = sets[row-1][prevComb][DIST] + npcData[begin][finish].dist
-                if sets[row][comb][DIST] > cost:
-                    sets[row][comb] = cost, finish
     '''
     '''
     for row in range(1, len(princesses)+1):
@@ -112,9 +103,8 @@ def karp(npcData, princesses, dragon, start):
                 if sets[row][comb][DIST] > cost:
                     sets[row][comb] = cost, finish
     '''
-    sets = [{frozenset(): (npcData[start][dragon].dist, dragon)}]
+    sets = [{frozenset(): (npcData[start][dragon].dist, dragon, start)}]
     #nmap = [{frozenset(): {dragon: (npcData[start][dragon].dist, start)}}]
-    nmap = []
     # [rowLIST][setDICT][finish]
 
     # nakreslit si algoritmus (grafy), zapisovat si vypocitavania (matika), 
@@ -123,19 +113,32 @@ def karp(npcData, princesses, dragon, start):
     # rowLIST = cislo riadku
     # setDICT = dictionary, pri ktorom key je frozenset kombinacie (groupa v ramci riadku)
     # finish =  dictionary, pri ktorom key je finish, a value je jeho cost a predosli node (node)
+    # 
     princesses = frozenset(princesses)
-
-    for row in range(len(princesses)):
-        nmap.append({})
-        for comb in combinations(princesses, row):          # prava strana combo
+    prevCombs = frozenset({dragon})
+    for row in range(0, len(princesses)):
+        sets.append({})             # frozenset key, value bude tuple (distance, predosliNode)
+        combs = combinations(princesses, row)
+        for comb in combs:          # prava strana combo
             comb2 = frozenset(comb)
-            nmap[row].update({comb2: {}})
+            #sets[row].update({})
+            #sets[row].update({comb2: {}})
 
             for finish in princesses - comb2:                # lava strana
-                for subcomb in combinations(comb, row-1):
-                    subcomb2 = frozenset(subcomb)
-                    begin = nmap[row-1][subcomb2][2]
-                    prevCost = nmap[row-1][subcomb2]
+                for prevComb in prevCombs:
+                    prevComb = frozenset({prevComb})
+                    prevCost, begin, path = sets[row][comb2 - prevComb]
+                    #begin = sets[row][prevComb][POS]
+                    cost = npcData[begin][finish].dist + prevCost
+
+                    #nmap[row][comb2].update({finish: (cost, begin, finish)})
+                    sets[row+1].update({comb2: (cost, finish, begin)})
+
+
+
+                    #subcomb2 = frozenset(subcomb)
+                    #begin = sets[row-1][subcomb2][2]
+                    #prevCost = sets[row-1][subcomb2]
                 # comb je zaciatok
                 # dostanem ale 24,20,4
                 # potrebujem tie ktore su nadtym, tj 24,20; 24,4; 20,4
@@ -153,7 +156,7 @@ def karp(npcData, princesses, dragon, start):
                 # ist do frozensetov ktore nemaju finish
 
                 # spravit kombinacie s poctom o -1
-
+                '''
                 if row:
                     begin = list(comb2)[0]
                     # comb3 = comb2.union()
@@ -163,7 +166,8 @@ def karp(npcData, princesses, dragon, start):
                 cost = npcData[begin][finish].dist + prevCost
 
                 nmap[row][comb2].update({finish: (cost, begin, finish)})
-        #prevCombs = combs
+                '''
+        prevCombs = combs
 
 
 
