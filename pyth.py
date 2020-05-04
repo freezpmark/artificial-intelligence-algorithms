@@ -80,9 +80,6 @@ def findMinDist(npcData, princesses, dragon, start):
     return (start, dragon) + order, mini
 
 def karp(npcData, princesses, dragon, start):
-    DIST, POS, PAT = 0, 1, 2
-    sets = [{frozenset(): (npcData[start][dragon].dist, dragon)}]
-    princesses = frozenset(princesses)
     '''
     for row in range(1, len(princesses)+1):
         sets.append(collections.defaultdict(lambda:[maxsize]))
@@ -103,7 +100,8 @@ def karp(npcData, princesses, dragon, start):
                 if sets[row][comb][DIST] > cost:
                     sets[row][comb] = cost, finish
     '''
-    sets = [{frozenset(): (npcData[start][dragon].dist, dragon, start)}]
+    #sets = [{frozenset(): (npcData[start][dragon].dist, dragon)}]
+    #sets = [{frozenset(): (npcData[start][dragon].dist, dragon, start)}]
     #nmap = [{frozenset(): {dragon: (npcData[start][dragon].dist, start)}}]
     # [rowLIST][setDICT][finish]
 
@@ -113,26 +111,88 @@ def karp(npcData, princesses, dragon, start):
     # rowLIST = cislo riadku
     # setDICT = dictionary, pri ktorom key je frozenset kombinacie (groupa v ramci riadku)
     # finish =  dictionary, pri ktorom key je finish, a value je jeho cost a predosli node (node)
-    # 
-    princesses = frozenset(princesses)
-    prevCombs = frozenset({dragon})
-    for row in range(0, len(princesses)):
-        sets.append({})             # frozenset key, value bude tuple (distance, predosliNode)
-        combs = combinations(princesses, row)
-        for comb in combs:          # prava strana combo
-            comb2 = frozenset(comb)
-            #sets[row].update({})
-            #sets[row].update({comb2: {}})
+    
+    #########################################
+    # Understand the algorithm works
+    # visualize it, math it on paint 
+    # search for patterns to get the CYCLE structure done first
+    # then think of data types
+    DIST, POS, PAT = 0, 1, 2
+    #nodes = {(dragon, frozenset()): (npcData[start][dragon].dist, start)}
+    nodes = {}
 
-            for finish in princesses - comb2:                # lava strana
-                for prevComb in prevCombs:
-                    prevComb = frozenset({prevComb})
-                    prevCost, begin, path = sets[row][comb2 - prevComb]
+    princesses = frozenset(princesses)
+    for row in range(len(princesses)):              # set length
+        for comb in combinations(princesses, row):  # set value     (right side)
+            comb = frozenset(comb)
+            for finish in princesses - comb:        # destination   (left side)
+                routes = []
+                if comb == frozenset():             # case for dragon starting
+                    cost = npcData[dragon][finish].dist + npcData[start][dragon].dist
+                    nodes[finish, frozenset()] = cost, dragon
+                else:
+                    for begin in comb:              # it always is a single value from the set
+                        # when we have begin, we need to find combo of set length - 1 in which the begin isnt there
+                        subcomb = comb - frozenset({begin})     # this is how we get previous level combo we needed
+                        prevCost = nodes[begin, subcomb][DIST]
+                        cost = npcData[begin][finish].dist + prevCost
+                        routes.append((cost, begin))
+                    nodes[finish, comb] = min(routes)
+
+    com = []
+    for i, node in enumerate(reversed(dict(nodes))):
+        if i < len(princesses):
+            com.append((nodes.pop(node), node[0]))
+        elif i == len(princesses):
+            val, step = min(com)
+            princesses -= {step}
+            path = [step]
+            cost, nextStep = val
+            break
+    
+    for _ in range(len(princesses)):
+        path.append(nextStep)
+        princesses -= {nextStep}
+        nextStep = nodes[nextStep, princesses][1]
+    path.extend([dragon, start])
+
+    return path[::-1], cost
+
+
+    
+    
+
+    '''                         IF DRAGON INCLUDED IN CYCLE
+    if comb == frozenset():
+        nodes[dragon, frozenset()] = npcData[start][dragon].dist, start
+        break
+    '''
+                # first cycle must be empty combo, but we must iterate 3 finishes
+
+
+
+
+
+                    #prevCost = min(i for i in range(10))
+
+
+                    # get begin (for the one step part of cost)
+                    # + the cost in previous set value in which the dest is begin AND from
+                    # the remaining values in previous set comb
+
+                    # we need a key which consists of DEST and COMB
+                    # data types: string, tuple, class (class is too complex for it)
+                    # string would be great, the last letter could serve as the dest and the rest 
+                        # represent combo, but ive seen people doin it like that
+                        # and since im doing it via these frozensets, I shall continue with it
+                    
+                    #prevComb = frozenset({prevComb})
+                    #prevCost, begin, path = sets[row][comb2 - prevComb]
                     #begin = sets[row][prevComb][POS]
-                    cost = npcData[begin][finish].dist + prevCost
+                    #cost = npcData[begin][finish].dist + prevCost
 
                     #nmap[row][comb2].update({finish: (cost, begin, finish)})
-                    sets[row+1].update({comb2: (cost, finish, begin)})
+                    #sets[row+1].update({comb2: (cost, finish, begin)})
 
 
 
@@ -142,12 +202,12 @@ def karp(npcData, princesses, dragon, start):
                 # comb je zaciatok
                 # dostanem ale 24,20,4
                 # potrebujem tie ktore su nadtym, tj 24,20; 24,4; 20,4
-                '''
-                for prevComb in prevCombs:
-                    prevComb2 = frozenset(prevComb)
-                for prevComb in nmap[row-1]:
-                    if prevComb[princesses - comb2 - {finish}] in nmap[row-1]
-                '''
+    '''
+    for prevComb in prevCombs:
+        prevComb2 = frozenset(prevComb)
+    for prevComb in nmap[row-1]:
+        if prevComb[princesses - comb2 - {finish}] in nmap[row-1]
+    '''
                 # ideme do nodu FINISH, ako zistit begin? v combo mame begin - to je ale mnozina
                 # takze musime ju zminusovat s niecim takze list(comb2 - ...)
                 # zminusovat ju musime z predosleho rowu.. ako? kde a jak
@@ -156,56 +216,44 @@ def karp(npcData, princesses, dragon, start):
                 # ist do frozensetov ktore nemaju finish
 
                 # spravit kombinacie s poctom o -1
-                '''
-                if row:
-                    begin = list(comb2)[0]
-                    # comb3 = comb2.union()
-                    prevCost = nmap[row-1][prevComb][begin][DIST]       # PRESUNUT HORE
-                else:
-                    prevCost, begin = npcData[start][dragon].dist, dragon
-                cost = npcData[begin][finish].dist + prevCost
+    '''
+    if row:
+        begin = list(comb2)[0]
+        # comb3 = comb2.union()
+        prevCost = nmap[row-1][prevComb][begin][DIST]       # PRESUNUT HORE
+    else:
+        prevCost, begin = npcData[start][dragon].dist, dragon
+    cost = npcData[begin][finish].dist + prevCost
 
-                nmap[row][comb2].update({finish: (cost, begin, finish)})
-                '''
-        prevCombs = combs
+    nmap[row][comb2].update({finish: (cost, begin, finish)})
+    '''
 
-
-
-
-        '''
-        for prevComb in sets[row-1]:                    # 
-            prevComb = frozenset(prevComb)
-            for finish in comb2 - prevComb:
-                begin = sets[row-1][prevComb][POS]
-                cost = sets[row-1][prevComb][DIST] + npcData[begin][finish].dist
-                if sets[row][comb2][DIST] > cost:
-                    sets[row][comb2] = cost, finish
-                a=1
-                b=2
-            a=1
-            b=2
-        '''
-        '''
-        for compart in combinations(comb, len(comb)-1): 
-            sets[row-1][compart] - compart
-
-        for prevComb in sets[row-1]:
-
-            comb = frozenset(comb)
-            finish = list(comb - prevComb)[0]   # only one and first element can be there
+    '''
+    for prevComb in sets[row-1]:                    # 
+        prevComb = frozenset(prevComb)
+        for finish in comb2 - prevComb:
             begin = sets[row-1][prevComb][POS]
             cost = sets[row-1][prevComb][DIST] + npcData[begin][finish].dist
-            if sets[row][comb][DIST] > cost:
-                sets[row][comb] = cost, finish
-        '''
+            if sets[row][comb2][DIST] > cost:
+                sets[row][comb2] = cost, finish
+            a=1
+            b=2
+        a=1
+        b=2
+    '''
+    '''
+    for compart in combinations(comb, len(comb)-1): 
+        sets[row-1][compart] - compart
 
-    paath = []
-    prev = comb
-    for i in range(row, 0, -1):
-        paath.append(sets[i][prev][POS])
-        prev = prev - {sets[i][prev][POS]}
+    for prevComb in sets[row-1]:
 
-    return [start, dragon] + paath[::-1], sets[row][comb][DIST]
+        comb = frozenset(comb)
+        finish = list(comb - prevComb)[0]   # only one and first element can be there
+        begin = sets[row-1][prevComb][POS]
+        cost = sets[row-1][prevComb][DIST] + npcData[begin][finish].dist
+        if sets[row][comb][DIST] > cost:
+            sets[row][comb] = cost, finish
+    '''
 
 def getPath(npcData, order):
     path = []
