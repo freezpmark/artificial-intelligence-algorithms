@@ -1,6 +1,7 @@
 import heapq, copy, collections
 from sys import maxsize
 from itertools import permutations, combinations
+from operator import add
 
 class Node:
     def __init__(self, pos, ter):
@@ -8,7 +9,6 @@ class Node:
         self.ter = ter          # terrain
         self.path = -1          # node position from which we got to this node
         self.dist = maxsize     # distance from start to current node
-        self.neighbors = []         # neighbors node positions
 
         self.f = 0
         self.g = 0
@@ -16,15 +16,16 @@ class Node:
     def __lt__(self, other):
         return self.dist < other.dist
 
-def dijkstra(data, start):
+def dijkstra(data, start, adjacency):
     h = []
     data[start].dist = 0
     heapq.heappush(h, data[start])
 
-    for _ in data:
+    for i, _ in enumerate(data):
         node = heapq.heappop(h)
-        for neighbor in node.neighbors:
-            if data[neighbor].dist > node.dist + data[neighbor].ter and data[neighbor].ter:
+        for adjacent in adjacency:
+            neighbor = (node.pos[0]+adjacent[0], node.pos[1]+adjacent[1])
+            if neighbor in data and data[neighbor].dist > node.dist + data[neighbor].ter:
                 data[neighbor].dist = node.dist + data[neighbor].ter
                 data[neighbor].path = node.pos
                 heapq.heappush(h, data[neighbor])
@@ -40,58 +41,43 @@ def aStar(data, start, end):
 
 
 
-def load(file, diagonal):
+def load(file):
     with open(file) as f:
-        maxRow, maxCol = map(int, f.readline().split()[:2])
-        mapStr = ''
-        for line in range(maxRow):
-            mapStr += f.readline().rstrip('\n')
+        # maxRow, maxCol = map(int, f.readline().split()[:2])
+        maxRow, maxCol, moveType = f.readline().split()[:3]
+        map2D = [f.readline().rstrip('\n') for line in range(int(maxRow))]
+        adjacency = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        if moveType == 'D':
+            adjacency.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
 
         #mapStr = f.readline()
-        if maxRow*maxCol != len(mapStr):    # az na konci!
+        # if maxRow*maxCol != len(mapStr):    # az na konci!
             # S - start (required)
             # N - princesses (required)
             # D - one dragon (required)
             # E - end (optional)
             # D - dragon (optional)
             # P - portal (optional)
-            print("Incorrect number of map characters")
-            return
+        #    print("Incorrect number of map characters")
+        #    return
 
-    mapTerr = {'N': 200, 'H': 2, 'M': 0}
+    mapTerr = {'N': 200, 'H': 2}
     mapTerr = collections.defaultdict(lambda: 1, mapTerr)
     princesses = []
-    mapData = []
-    start = 0
-    for i, ter in enumerate(mapStr):
-        if ter == 'D':
-            dragon = i
-        if ter == 'P':
-            princesses.append(i)
-        if ter == 'S':
-            start = i
-        
-        length = mapTerr[ter]
-        mapData.append(Node(i, length))
-        if i >= maxCol:     # although we could also make automatic new map nodes with max size!
-            mapData[i].neighbors.append(i-maxCol)   # UPPER
-        if i < maxCol*(maxRow-1):
-            mapData[i].neighbors.append(i+maxCol)   # LOWER
-        if i % maxCol != 0:
-            mapData[i].neighbors.append(i-1)        # LEFT
-        if (i+1) % maxCol != 0:
-            mapData[i].neighbors.append(i+1)        # RIGHT
-        if diagonal:
-            if (i+1) % maxCol != 0 and i >= maxCol:             # RIGHT UPPER
-                mapData[i].neighbors.append(i+1-maxCol)
-            elif (i+1) % maxCol != 0 and i < maxCol*(maxRow-1): # RIGHT LOWER
-                mapData[i].neighbors.append(i+1+maxCol)
-            elif i % maxCol != 0 and i >= maxCol:               # LEFT UPPER
-                mapData[i].neighbors.append(i-1-maxCol)
-            elif i % maxCol != 0 and i < maxCol*(maxRow-1):     # LEFT LOWER
-                mapData[i].neighbors.append(i-1+maxCol)
+    mapData = {}
+    start = 0, 0
 
-    return mapData, princesses, dragon, start, maxRow, maxCol
+    for i in range(int(maxRow)):
+        for j in range(int(maxCol)):
+            if map2D[i][j] == 'D':
+                dragon = i, j
+            elif map2D[i][j] == 'P':
+                princesses.append((i, j))
+            elif map2D[i][j]  == 'S':
+                start = i, j
+            mapData[i, j] = Node((i, j), mapTerr[map2D[i][j]])
+    
+    return mapData, princesses, dragon, start, adjacency
 
 def findMinDist(npcData, princesses, dragon, start):
     mini = maxsize
@@ -157,37 +143,34 @@ def getPath(npcData, order):
 
     return path
 
-def printSolution(path, maxRow, maxCol):
+def printSolution(path):
     for i, road in enumerate(path, 1):
         print(f"\n{i}: ", end=' ')
         for step in road:
-            a = step // maxRow
-            b = step % maxCol
-            print(f"{a}{b}", end=' ')
+            print(step, end=' ')
     print()
 
 
 def main():
-    mapData, princesses, dragon, start, maxRow, maxCol = load("mapa4.txt", True)
+    mapData, princesses, dragon, start, adjacency = load("mapa4.txt")
 
-    npcData = {p: dijkstra(copy.deepcopy(mapData), p) for p in princesses}
-    npcData.update({start: dijkstra(copy.deepcopy(mapData), start)}) # tu bude A*, k drakovi
+    npcData = {p: dijkstra(copy.deepcopy(mapData), p, adjacency) for p in princesses}
+    npcData.update({start: dijkstra(copy.deepcopy(mapData), start, adjacency)}) # we want aStar instead of this
     #npcData.update({start: aStar(copy.deepcopy(mapData), start, dragon)})
-    npcData.update({dragon: dijkstra(copy.deepcopy(mapData), dragon)})
+    npcData.update({dragon: dijkstra(copy.deepcopy(mapData), dragon, adjacency)})
 
-    #dStartCost = aStar(copy.deepcopy(mapData), start, dragon)
 
 
     print("Starting permutations")
     order, dist = findMinDist(npcData, princesses, dragon, start)
     path = getPath(npcData, order)
-    printSolution(path, maxRow, maxCol)
+    printSolution(path)
     print("Cost: " + str(dist))
 
     print("Starting Kerp")
     order2, dist2 = karp(npcData, princesses, dragon, start)
     path2 = getPath(npcData, order2)
-    printSolution(path2, maxRow, maxCol)
+    printSolution(path2)
     print("Cost: " + str(dist2))
     
 main()
