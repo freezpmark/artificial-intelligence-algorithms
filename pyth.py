@@ -6,8 +6,8 @@ from operator import add
 class Node:
     def __init__(self, pos, ter):
         self.pos = pos          # position
-        self.ter = ter          # terrain
-        self.path = -1          # node position from which we got to this node (parent rename!)
+        self.terrain = ter          # terrain
+        self.parent = -1          # node position from which we got to this node (parent rename!)
         self.dist = maxsize     # distance from start to current node
         self.f = maxsize
 
@@ -23,9 +23,9 @@ def dijkstra(data, start, adjacency):
         node = heapq.heappop(h)
         for adjacent in adjacency:
             neighbor = (node.pos[0]+adjacent[0], node.pos[1]+adjacent[1])
-            if neighbor in data and data[neighbor].dist > node.dist + data[neighbor].ter:
-                data[neighbor].dist = node.dist + data[neighbor].ter
-                data[neighbor].path = node.pos
+            if neighbor in data and data[neighbor].dist > node.dist + data[neighbor].terrain:
+                data[neighbor].dist = node.dist + data[neighbor].terrain
+                data[neighbor].parent = node.pos
                 heapq.heappush(h, data[neighbor])
 
     return data
@@ -47,12 +47,12 @@ def aStar(data, start, end, adjacency):
             neighbor = (node.pos[0]+adjacent[0], node.pos[1]+adjacent[1])
             if neighbor in data and neighbor not in closedL:        # also TRAVERSABLE (can do later)
                 h = abs(data[neighbor].pos[0] - end[0]) + abs(data[neighbor].pos[1] - end[1])
-                g = node.dist + data[neighbor].ter
+                g = node.dist + data[neighbor].terrain
                 f = g + h
                 if f < data[neighbor].f:
                     data[neighbor].f = f
                     data[neighbor].dist = g
-                    data[neighbor].path = node.pos
+                    data[neighbor].parent = node.pos
                 if neighbor not in openL:
                     heapq.heappush(openL, data[neighbor])
 
@@ -61,20 +61,17 @@ def aStar(data, start, end, adjacency):
 
 def load(file):
     with open(file) as f:
-        # maxRow, maxCol = map(int, f.readline().split()[:2])
         maxRow, maxCol, moveType = f.readline().split()[:3]
         map2D = [f.readline().rstrip('\n') for line in range(int(maxRow))]
         adjacency = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         if moveType == 'D':
             adjacency.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
 
-        #mapStr = f.readline()
         # if maxRow*maxCol != len(mapStr):    # az na konci!
             # S - start (required)
             # N - princesses (required)
             # D - one dragon (required)
             # E - end (optional)
-            # D - dragon (optional)
             # P - portal (optional)
         #    print("Incorrect number of map characters")
         #    return
@@ -156,7 +153,7 @@ def getPath(npcData, order):
         path2 = []
         while finish != begin:
             path2.append(finish)
-            finish = npcData[begin][finish].path
+            finish = npcData[begin][finish].parent
         path.append(path2[::-1])
 
     return path
@@ -173,10 +170,8 @@ def main():
     mapData, princesses, dragon, start, adjacency = load("mapa4.txt")
 
     npcData = {p: dijkstra(copy.deepcopy(mapData), p, adjacency) for p in princesses}
-    npcData.update({start: aStar(copy.deepcopy(mapData), start, dragon, adjacency)})
+    npcData.update({start: aStar(copy.deepcopy(mapData), start, dragon, adjacency)}) # we can use dijkstra once we find out the way to use aStar for KNOWN places (osada, hrad)
     npcData.update({dragon: dijkstra(copy.deepcopy(mapData), dragon, adjacency)})
-
-
 
     print("Starting permutations")
     order, dist = findMinDist(npcData, princesses, dragon, start)
