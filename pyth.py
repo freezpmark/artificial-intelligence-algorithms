@@ -9,10 +9,15 @@ class Node:
         self.terrain = ter          # terrain
         self.parent = -1          # node position from which we got to this node (parent rename!)
         self.dist = maxsize     # distance from start to current node
-        self.f = maxsize
+        self.g = maxsize        # distance for A*
+        self.h = maxsize
 
     def __lt__(self, other):
-        return self.dist < other.dist
+        #return self.dist < other.dist
+
+        if self.dist != other.dist:
+            return self.dist < other.dist
+        return self.h < other.h
 
 def dijkstra(data, start, adjacency):
     h = []
@@ -33,7 +38,7 @@ def dijkstra(data, start, adjacency):
 def aStar(data, start, end, adjacency):
     openL = []
     closedL = []
-    data[start].dist = 0
+    data[start].g = 0
     heapq.heappush(openL, data[start])
 
     for _ in data:      # until all nodes have been discovered
@@ -47,13 +52,14 @@ def aStar(data, start, end, adjacency):
             neighbor = (node.pos[0]+adjacent[0], node.pos[1]+adjacent[1])
             if neighbor in data and neighbor not in closedL:        # also TRAVERSABLE (can do later)
                 h = abs(data[neighbor].pos[0] - end[0]) + abs(data[neighbor].pos[1] - end[1])
-                g = node.dist + data[neighbor].terrain
+                g = node.g + data[neighbor].terrain
                 f = g + h
-                if f < data[neighbor].f:
-                    data[neighbor].f = f
-                    data[neighbor].dist = g
+                if f < data[neighbor].dist:
+                    data[neighbor].g = g
+                    data[neighbor].h = h
+                    data[neighbor].dist = f
                     data[neighbor].parent = node.pos
-                if neighbor not in openL:
+                if data[neighbor] not in openL:
                     heapq.heappush(openL, data[neighbor])
 
     return data
