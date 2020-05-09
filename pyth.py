@@ -13,8 +13,6 @@ class Node:
         self.h = maxsize
 
     def __lt__(self, other):
-        #return self.dist < other.dist
-
         if self.dist != other.dist:
             return self.dist < other.dist
         return self.h < other.h
