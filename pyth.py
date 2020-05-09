@@ -7,11 +7,9 @@ class Node:
     def __init__(self, pos, ter):
         self.pos = pos          # position
         self.ter = ter          # terrain
-        self.path = -1          # node position from which we got to this node
+        self.path = -1          # node position from which we got to this node (parent rename!)
         self.dist = maxsize     # distance from start to current node
-
-        self.f = 0
-        self.g = 0
+        self.f = maxsize
 
     def __lt__(self, other):
         return self.dist < other.dist
@@ -32,14 +30,34 @@ def dijkstra(data, start, adjacency):
 
     return data
 
-'''
-def aStar(data, start, end):
-    neighbors = []
-    checked = []
-'''
+def aStar(data, start, end, adjacency):
+    openL = []
+    closedL = []
+    data[start].dist = 0
+    heapq.heappush(openL, data[start])
+
+    for _ in data:      # until all nodes have been discovered
+        node = heapq.heappop(openL)
+        closedL.append(node.pos)
+
+        if node.pos == end:
+            break
+
+        for adjacent in adjacency:
+            neighbor = (node.pos[0]+adjacent[0], node.pos[1]+adjacent[1])
+            if neighbor in data and neighbor not in closedL:        # also TRAVERSABLE (can do later)
+                h = abs(data[neighbor].pos[0] - end[0]) + abs(data[neighbor].pos[1] - end[1])
+                g = node.dist + data[neighbor].ter
+                f = g + h
+                if f < data[neighbor].f:
+                    data[neighbor].f = f
+                    data[neighbor].dist = g
+                    data[neighbor].path = node.pos
+                if neighbor not in openL:
+                    heapq.heappush(openL, data[neighbor])
+
+    return data
     
-
-
 
 def load(file):
     with open(file) as f:
@@ -61,7 +79,7 @@ def load(file):
         #    print("Incorrect number of map characters")
         #    return
 
-    mapTerr = {'N': 200, 'H': 2}
+    mapTerr = {'N': 100, 'H': 2}
     mapTerr = collections.defaultdict(lambda: 1, mapTerr)
     princesses = []
     mapData = {}
@@ -155,8 +173,7 @@ def main():
     mapData, princesses, dragon, start, adjacency = load("mapa4.txt")
 
     npcData = {p: dijkstra(copy.deepcopy(mapData), p, adjacency) for p in princesses}
-    npcData.update({start: dijkstra(copy.deepcopy(mapData), start, adjacency)}) # we want aStar instead of this
-    #npcData.update({start: aStar(copy.deepcopy(mapData), start, dragon)})
+    npcData.update({start: aStar(copy.deepcopy(mapData), start, dragon, adjacency)})
     npcData.update({dragon: dijkstra(copy.deepcopy(mapData), dragon, adjacency)})
 
 
