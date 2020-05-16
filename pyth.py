@@ -1,7 +1,6 @@
-import heapq, copy, collections
+import heapq, copy, collections, random, time
 from sys import maxsize
 from itertools import permutations, combinations
-from operator import add
 
 class Node:
     def __init__(self, pos, ter):
@@ -65,8 +64,8 @@ def aStar(data, start, end, adjacency):
 
 def load(file):
     with open(file) as f:
-        maxRow, maxCol, moveType = f.readline().split()[:3]
-        map2D = [f.readline().rstrip('\n') for line in range(int(maxRow))]
+        ROWS, COLS, moveType = f.readline().split()[:3]
+        map2D = [f.readline().rstrip('\n') for line in range(int(ROWS))]
         adjacency = [(-1, 0), (1, 0), (0, -1), (0, 1)]
         if moveType == 'D':
             adjacency.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
@@ -86,8 +85,8 @@ def load(file):
     mapData = {}
     start = 0, 0
 
-    for i in range(int(maxRow)):
-        for j in range(int(maxCol)):
+    for i in range(int(ROWS)):
+        for j in range(int(COLS)):
             if map2D[i][j] == 'D':
                 dragon = i, j
             elif map2D[i][j] == 'P':
@@ -171,10 +170,11 @@ def printSolution(path):
 
 
 def main():
-    mapData, princesses, dragon, start, adjacency = load("mapa4.txt")
 
+    mapData, princesses, dragon, start, adjacency = load("mapa8.txt")
+    '''
     npcData = {p: dijkstra(copy.deepcopy(mapData), p, adjacency) for p in princesses}
-    npcData.update({start: aStar(copy.deepcopy(mapData), start, dragon, adjacency)}) # we can use dijkstra once we find out the way to use aStar for KNOWN places (osada, hrad)
+    npcData.update({start: aStar(copy.deepcopy(mapData), start, dragon, adjacency)}) # can use A* for different purposes tho
     npcData.update({dragon: dijkstra(copy.deepcopy(mapData), dragon, adjacency)})
 
     print("Starting permutations")
@@ -188,5 +188,221 @@ def main():
     path2 = getPath(npcData, order2)
     printSolution(path2)
     print("Cost: " + str(dist2))
-    
+
+    ### ZEN GARDEN ###
+    a=2
+    '''
+    with open("mapa8.txt") as f:
+
+        ROWS, COLS = map(int, f.readline().split()[:2])
+        TO_RAKE = COLS * ROWS - sum([string.count('N') for string in f])
+        HALF_PERIMETER = ROWS + COLS
+
+        GENES = HALF_PERIMETER * 2  # gene - an intruction 
+        CHROMOSOMES = 10            # chromosome - solution that is defined by order of genes
+        GENERATIONS = 100           # generation - set of all chromozomes
+
+        MIN_MUT_RATE = 0.05
+        MAX_MUT_RATE = 0.80
+        CROSS_RATE = 0.90
+
+        startTime = time.time()
+        generationTimes = []
+
+        # generating chromozomes for one population/generation
+        population = []
+        genes = random.sample(range(1, GENES), GENES-1)
+        for _ in range(CHROMOSOMES):
+            random.shuffle(genes)
+            chromosome = [num * random.choice([-1, 1]) for num in genes]
+            population.append(chromosome)
+
+        # loop of generations
+        mutRate = MIN_MUT_RATE
+        for generation in range(GENERATIONS):
+            genTime = time.time()
+            
+            # evaluate all chromosomes and find the best one
+            fitness, fMax, iMax = [], 0, 0
+            for chromosome in range(CHROMOSOMES):
+                raked = rakeGarden(population[chromosome], copy.deepcopy(mapData), False, ROWS, COLS, HALF_PERIMETER, TO_RAKE) # should be without map arg..
+                fitness.append(raked)
+                if raked > fMax:
+                    population[iMax]
+                    iMax, fMax = chromosome, raked
+
+            # ToDo: do this in the end
+            print(f"Generation: {generation}, Max raked: {fMax} (out of {TO_RAKE}), Mutation rate: {mutRate}")
+            if fMax == TO_RAKE:
+                total = round(time.time() - startTime, 2)
+                avg = round(sum(generationTimes) / len(generationTimes), 2)
+                chromo = " ".join(map(str, population[iMax]))
+                print(f"Found a solution in {total}s time, each generation took {avg}s in average.")
+                print(f"Chromosome: {chromo}")
+                rakeGarden(population[iMax], copy.deepcopy(mapData), True, ROWS, COLS, HALF_PERIMETER, TO_RAKE)
+                break
+            
+            # increasing mutation each generation change to prevent local maximums
+            mutRate = mutRate if mutRate >= MAX_MUT_RATE else mutRate + 0.01
+
+            # loop for creating next generation, 1 iteration for 2 populations that we mutate
+            children = []
+            for i in range(0, CHROMOSOMES, 2):
+
+                # pick 2 better chromosomes out of 4
+                pick = random.sample(range(CHROMOSOMES), 4)
+                better1 = pick[0] if fitness[pick[0]] > fitness[pick[1]] else pick[1]
+                better2 = pick[2] if fitness[pick[2]] > fitness[pick[3]] else pick[3]
+
+                # copying better genes to 2 child chromosomes
+                children.extend([[],[]])
+                for j in range(GENES-1):
+                    children[i].append(population[better1][j])
+                    children[i+1].append(population[better2][j])
+
+                # mutating 2 chromosomes with uniform crossover (both inherit the same amount of genetic info)
+                if random.random() < CROSS_RATE:
+                    for c in range(2):
+                        for g in range(GENES-1):
+                            if random.random() < mutRate:
+
+                                # search for gene with mutNum number
+                                mutNum = random.randint(1, GENES) * random.choice([-1, 1])
+                                f = 0
+                                for k, gene in enumerate(children[i+c]):
+                                    if gene == mutNum:
+                                        f = k
+
+                                # if found, swap it with g gene, if not, replace g with it
+                                if f:
+                                    tmp = children[i+c][g]
+                                    children[i+c][g] = children[i+c][f]
+                                    children[i+c][f] = tmp
+                                else:
+                                    children[i+c][g] = mutNum
+
+            # keep the best chromosome for next generation
+            for i in range(GENES-1):
+                children[0][i] = population[iMax][i]
+
+            population = children
+
+            generationTimes.append(time.time() - genTime)
+
+def printMap(mapData, COLS):
+    for i, aa in enumerate(mapData):
+        if i % COLS == 0:
+            print()
+        if mapData[aa].dist == maxsize:
+            saj = 99
+            if mapData[aa].terrain == 100:
+                saj = 0
+        else:
+            saj = mapData[aa].dist
+
+        print("{0:2}".format(saj), end=' ')
+    print("\n")
+
+
+def rakeGarden(chromozome, mapData, printConsole, ROWS, COLS, HALF_PERIMETER, TO_RAKE):
+    order = 1         # raking order and terrain
+    for gene in chromozome:
+
+        # get starting position and movement direction
+        posNum = abs(gene)
+        if posNum <= COLS:                         # go DOWN    <0, 20>        # 20r, 10c
+            pos, move = (0, posNum-1), (1, 0)
+        elif posNum <= HALF_PERIMETER:             # go RIGHT   (20, 30>
+            pos, move = (posNum-COLS-1, 0), (0, 1)
+        elif posNum <= HALF_PERIMETER + ROWS:      # go LEFT    (30, 40>
+            pos, move = (posNum-HALF_PERIMETER-1, COLS-1), (0, -1)
+        else:                                      # go UP      <40, 60)
+            pos, move = (ROWS-1, posNum-HALF_PERIMETER-ROWS-1), (-1, 0)
+        
+        # checking whether we can enter the garden with current pos
+        if mapData[pos].terrain != 100 and mapData[pos].dist == maxsize:
+            parent = -1
+
+            # move until we reach end of the map 
+            while pos in mapData:
+                mapData[pos].parent = parent
+
+                # if collision to raked sand
+                if mapData[pos].terrain == 100 or mapData[pos].dist != maxsize:
+                    prevPos = mapData[pos].parent
+                    
+                    # changing direction
+                    if move[0] != 0:    # Y -> X
+                        right = prevPos[0], prevPos[1] + 1
+                        left = prevPos[0], prevPos[1] - 1
+                        if right in mapData and (mapData[right].dist == maxsize and mapData[right].terrain != 100) and \
+                            left in mapData and (mapData[left].dist == maxsize and mapData[left].terrain != 100):
+                            move = (0, 1) if gene > 0 else (0, -1)
+                        elif right in mapData and (mapData[right].dist == maxsize and mapData[right].terrain != 100):
+                            move = 0, 1
+                        elif left in mapData and (mapData[left].dist == maxsize and mapData[left].terrain != 100):
+                            move = 0, -1
+                        else:
+                            if right not in mapData or left not in mapData:
+                                break
+                            else:
+                                move = False
+                    else:               # X -> Y
+                        down = prevPos[0] + 1, prevPos[1]
+                        up = prevPos[0] - 1, prevPos[1]
+                        if up in mapData and (mapData[up].dist == maxsize and mapData[up].terrain != 100) and \
+                            down in mapData and (mapData[down].dist == maxsize and mapData[down].terrain != 100):
+                            move = (1, 0) if gene > 0 else (-1, 0)
+                        elif down in mapData and (mapData[down].dist == maxsize and mapData[down].terrain != 100):
+                            move = 1, 0
+                        elif up in mapData and (mapData[up].dist == maxsize and mapData[up].terrain != 100):
+                            move = -1, 0      # -1, 0
+                        else:
+                            if up not in mapData or down not in mapData:
+                                break
+                            else:
+                                move = False
+                    
+                    # if we cant change direction, remove the path
+                    if not move:
+                        cancelTransitNum = 1
+                        while mapData[prevPos].parent != -1:
+                            mapData[prevPos].dist = maxsize
+                            pare = mapData[prevPos].parent
+                            mapData[prevPos].parent = -1
+                            prevPos = pare
+                        mapData[prevPos].dist = maxsize
+                        mapData[prevPos].parent = -1
+                        break
+                    pos = prevPos[0] + move[0], prevPos[1] + move[1]
+                    mapData[pos].parent = prevPos
+
+                cancelTransitNum = 0
+                mapData[pos].dist = order
+                parent = pos
+                pos = pos[0]+move[0], pos[1]+move[1]
+
+            if cancelTransitNum == 0:
+                order += 1
+
+    if printConsole:
+        printMap(mapData, COLS)
+
+    unraked = 0
+    for i in range(ROWS):
+        for j in range(COLS):
+            if mapData[i, j].dist == maxsize and mapData[i, j].terrain != 100:
+                unraked += 1
+
+    return TO_RAKE - unraked
+
 main()
+
+#objs:
+# terrain -1 (rock), 0 is unraked, >0 is raked
+# create evolution as a map creator: create file with the map / or just show up hows it done
+# integrate it with path finding algs (two ways: mountain, basic)
+# create class for a map and make functions standalone
+
+# apply rules somehow and make simulation (would be better without resources, just moves)
+# race of 3 playres in random positions
