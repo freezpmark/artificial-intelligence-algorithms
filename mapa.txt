@@ -1,2 +1,10 @@
-5     5 30
-CPPHHHCHCCCCHCCCHCCCHPCDC
+5     5 D
+CPPHH
+HCHCC
+CCHCC
+CHCCC
+HPCDC
+
+with open('somefile') as openfileobject:
+    for line in openfileobject:
+        do_something()
