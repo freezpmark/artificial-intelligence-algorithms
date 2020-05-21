@@ -280,7 +280,7 @@ def main():
     HALF_PERIMETER = ROWS + COLS
 
     GENES = HALF_PERIMETER * 2  # gene - an intruction 
-    CHROMOSOMES = 50            # chromosome - solution that is defined by order of genes
+    CHROMOSOMES = 100            # chromosome - solution that is defined by order of genes
     GENERATIONS = 100           # generation - set of all chromozomes
 
     MIN_MUT_RATE = 0.05
@@ -481,3 +481,5 @@ main()
 
 # apply rules somehow and make simulation (would be better without resources, just moves)
 # race of 3 playres in random positions
+
+
