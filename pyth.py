@@ -1,4 +1,4 @@
-import heapq, copy, collections, random, time
+import heapq, copy, collections, random, time, re
 from sys import maxsize
 from itertools import permutations, combinations, product
 
@@ -205,47 +205,9 @@ def printSolution(path):
     print()
 
 
-def queryEvolution(query):
-    query = query.split()
-    ROWS, COLS = map(int, query[0].split('x'))
-    walls = {eval(coordinate) for coordinate in query[1:]}
-    mapData = [[0] * ROWS for _ in range(ROWS)]
-
-    for wall in walls:
-        mapData[wall[0]][wall[1]] = 1
-    
-    return mapData
-
-def loadEvolution(mapString):
-    mapData = []
-    length = 0
-
-    with open(mapString) as f:
-        for i, line in enumerate(f):
-            line = line.rstrip()
-            if length and length != len(line):
-                mapData = False
-                break
-
-            length = len(line)
-            mapData.append([])
-            for column in line:
-                mapData[i].append(int(column))
-
-    return mapData
-
-def listToTuple(mapData):
-    mapDate = {}
-    for i, row in enumerate(mapData):
-        for j, col in enumerate(row):
-            mapDate[i, j] = mapData[i][j]
-
-    return mapDate
-
-
 def main():
 
-    mapData, princesses, dragon, start, adjacency = load("mapa8.txt")
+    #mapData, princesses, dragon, start, adjacency = load("mapa8.txt")
     '''
     npcData = {p: dijkstra(copy.deepcopy(mapData), p, adjacency) for p in princesses}
     npcData.update({start: aStar(copy.deepcopy(mapData), start, dragon, adjacency)}) # can use A* for different purposes tho
@@ -264,23 +226,96 @@ def main():
     print("Cost: " + str(dist2))
 
     ### ZEN GARDEN ###
-    a=2
-    '''
-    #with open("mapa8.txt") as f:
-    #mapList = queryEvolution("20x10 (1,2) (4,3) (5,4)")
-    #ROWS, COLS = map(int, f.readline().split()[:2])
-    #ROWS, COLS = len(mapData), len(mapData[0])
-    #TO_RAKE = COLS * ROWS - sum(line.count(1) for line in mapData) # sum([string.count('N') for string in f])
-    mapList = loadEvolution("mapa10.txt")
-    mapTuple = listToTuple(mapList)
-    mapTuple = {key: -mapTuple[key] for key, num in mapTuple.items()}
 
-    ROWS, COLS, ROCKS = len(mapList), len(mapList[0]), sum(val == 1 for val in mapTuple.values())
+    '''
+    #query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
+    #query = "mapa11.txt"
+    query = "10x10 (12,2) (0,0)"
+
+    mapList = declareMap(query)
+    if not mapList:
+        print("Invalid query!")
+        return
+    
+    mapData = initEvoMap(mapList, True)
+    if not mapData:
+        print("Evo could not find a solution, try again.")
+        return
+
+    saveMap(mapData, 'yosh')
+    mapData2 = loadMap('yosh')
+
+
+    # SOLVING! PATH INC!
+    a=1
+    b=2
+
+
+def loadMap(fileName):
+    with open(fileName + '.txt') as f:
+        mapData = []
+        for line in f:
+            mapData.append(list(map(int, line.rstrip('\n').split())))
+    
+    return mapData
+
+def saveMap(mapData, fileName):
+    with open(fileName + '.txt', 'w') as f:
+        for row in mapData:
+            f.write(' '.join(map(str, row)) + '\n')
+
+def declareMap(query):
+    mapData = []
+
+    # Load from string
+    if re.search('[0-9]+x[0-9]+(\ \([0-9]+,[0-9]+\))+$', query): # Load from string
+        query = query.split()
+        ROWS, COLS = map(int, query[0].split('x'))
+        walls = {eval(coordinate) for coordinate in query[1:]}
+        mapData = [[0] * ROWS for _ in range(ROWS)]
+
+        # ToDo: INDEX ERROR possible
+        for wall in walls:
+            mapData[wall[0]][wall[1]] = 1
+        
+        return mapData
+
+    # Load from file
+    elif re.search('\.txt', query):
+        length = 0
+
+        with open(query) as f:
+            for i, line in enumerate(f):
+                line = line.rstrip()
+                if length and length != len(line):
+                    mapData = False
+                    break
+
+                length = len(line)
+                mapData.append([])
+                for column in line:
+                    mapData[i].append(int(column))
+
+    return mapData
+
+def listToTuple(mapData):
+    mapDate = {}
+    for i, row in enumerate(mapData):
+        for j, col in enumerate(row):
+            mapDate[i, j] = mapData[i][j]
+
+    return mapDate
+
+def initEvoMap(mapList, printStats):
+    mapTuple = listToTuple(mapList)
+    mapTuple = {key: -mapTuple[key] for key, _ in mapTuple.items()}
+
+    ROWS, COLS, ROCKS = len(mapList), len(mapList[0]), sum(val != 0 for val in mapTuple.values())
     TO_RAKE = COLS * ROWS - ROCKS
     HALF_PERIMETER = ROWS + COLS
 
     GENES = HALF_PERIMETER * 2  # gene - an intruction 
-    CHROMOSOMES = 100            # chromosome - solution that is defined by order of genes
+    CHROMOSOMES = 20            # chromosome - solution that is defined by order of genes
     GENERATIONS = 100           # generation - set of all chromozomes
 
     MIN_MUT_RATE = 0.05
@@ -289,6 +324,8 @@ def main():
 
     startTime = time.time()
     generationTimes = []
+    prevMax = 0
+    foundSolution = False
 
     # generating chromozomes for one population/generation
     population = []
@@ -306,21 +343,15 @@ def main():
         # evaluate all chromosomes and find the best one
         fitness, fMax, iMax = [], 0, 0
         for chromosome in range(CHROMOSOMES):
-            raked = rakeGarden(population[chromosome], copy.deepcopy(mapTuple), False, ROWS, COLS, HALF_PERIMETER, TO_RAKE) # should be without map arg..
+            raked, filledMap = rakeGarden(population[chromosome], copy.deepcopy(mapTuple), ROWS, COLS, HALF_PERIMETER, TO_RAKE) # should be without map arg..
             fitness.append(raked)
             if raked > fMax:
-                population[iMax]
-                iMax, fMax = chromosome, raked
+                iMax, fMax, mMap = chromosome, raked, filledMap
 
-        # ToDo: do this in the end
-        print(f"Generation: {generation}, Max raked: {fMax} (out of {TO_RAKE}), Mutation rate: {mutRate}")
+        if prevMax < fMax:
+            print(f"Generation: {generation},   Max raked: {fMax} (out of {TO_RAKE}),   Mutation rate: {round(mutRate, 2)}")
         if fMax == TO_RAKE:
-            total = round(time.time() - startTime, 2)
-            avg = round(sum(generationTimes) / len(generationTimes), 2) if generationTimes else total
-            chromo = " ".join(map(str, population[iMax]))
-            print(f"Found a solution in {total}s time, each generation took {avg}s in average.")
-            print(f"Chromosome: {chromo}")
-            rakeGarden(population[iMax], copy.deepcopy(mapTuple), True, ROWS, COLS, HALF_PERIMETER, TO_RAKE)
+            foundSolution = True
             break
         
         # increasing mutation each generation change to prevent local maximums
@@ -367,24 +398,34 @@ def main():
 
         population = children
 
+        prevMax = fMax
         generationTimes.append(time.time() - genTime)
 
-def printMap(mapData, COLS):
-    for i, aa in enumerate(mapData.values()):
-        if i % COLS == 0:
+    # printing stats, solution and map
+    if printStats:
+        total = round(time.time() - startTime, 2)
+        avg = round(sum(generationTimes) / len(generationTimes), 2) if generationTimes else total
+        chromo = " ".join(map(str, population[iMax]))
+        print("{} a solution!".format("Found" if foundSolution else "Couldn't find"))
+        print(f"Total time elapsed is {total}s, each generation took {avg}s in average.")
+        print(f"Chromosome: {chromo}")
+
+        # printing map
+        for row in mMap:
+            for col in row:
+                print("{0:2}".format(col), end=' ')
             print()
-        print("{0:2}".format(aa), end=' ')
-    print("\n")
 
+    return mMap if foundSolution else []
 
-def rakeGarden(chromozome, mapData, printConsole, ROWS, COLS, HALF_PERIMETER, TO_RAKE):
+def rakeGarden(chromozome, mapData, ROWS, COLS, HALF_PERIMETER, TO_RAKE):
     UNRAKED = 0
-    order = 1         # raking order and terrain
+    order = 1
     for gene in chromozome:
 
         # get starting position and movement direction
         posNum = abs(gene)
-        if posNum <= COLS:                         # go DOWN    <0, 20>        # 20r, 10c
+        if posNum <= COLS:                         # go DOWN    <0, 20>
             pos, move = (0, posNum-1), (1, 0)
         elif posNum <= HALF_PERIMETER:             # go RIGHT   (20, 30>
             pos, move = (posNum-COLS-1, 0), (0, 1)
@@ -399,11 +440,11 @@ def rakeGarden(chromozome, mapData, printConsole, ROWS, COLS, HALF_PERIMETER, TO
             parent = 0
 
             # move until we reach end of the map 
-            while 0 <= pos[0] < ROWS and 0 <= pos[1] < COLS:    # pos in mapData, :=
+            while 0 <= pos[0] < ROWS and 0 <= pos[1] < COLS:
 
-                # if collision to raked sand / rock
+                # collision to raked sand/rock
                 if mapData[pos] != UNRAKED:
-                    pos = parent            # move back
+                    pos = parent            # get previous pos
                     parent = parents[pos]   # get previous parent
                     
                     # change moving direction
@@ -465,20 +506,24 @@ def rakeGarden(chromozome, mapData, printConsole, ROWS, COLS, HALF_PERIMETER, TO
 
             order += 1
 
-    if printConsole:
-        printMap(mapData, COLS)
+    filledMap = []
+    unraked = 0
+    j = -1
+    for i, fill in enumerate(mapData.values()):
+        if fill == UNRAKED:
+            unraked += 1
+        if i % COLS == 0:
+            j += 1
+            filledMap.append([])
+        filledMap[j].append(fill)
 
-    unraked = sum(val == UNRAKED for val in mapData.values())
-    return TO_RAKE - unraked
+    return TO_RAKE - unraked, filledMap
 
 main()
 
 #objs:
-# read book for OOP, agregation, etc.
-# create class for a map and make functions standalone
-    # create map with evolution -> terrain -1 (rock), 0 is unraked, >0 is raked
-    # path finding algs (two ways: mountain, basic)
-
+# maybe fix types from int to string?
+# read book for OOP class, agregation, etc.
 # apply rules somehow and make simulation (would be better without resources, just moves)
 # race of 3 playres in random positions
 
