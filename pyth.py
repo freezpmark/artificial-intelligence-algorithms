@@ -83,18 +83,25 @@ class Node:
         return self.h < other.h
 
 def dijkstra(data, start, adjacency):
-    h = []
+    heap = []
     data[start].dist = 0
-    heapq.heappush(h, data[start])
+    heapq.heappush(heap, data[start])
 
-    for i, _ in enumerate(data):
-        node = heapq.heappop(h)
+    while heap:
+        node = heapq.heappop(heap)
         for adjacent in adjacency:
             neighbor = (node.pos[0]+adjacent[0], node.pos[1]+adjacent[1])
-            if neighbor in data and data[neighbor].dist > node.dist + data[neighbor].terrain:
+
+            # avoid out of bounds or walls
+            if not 0 <= neighbor[0] < data.height or \
+                not 0 <= neighbor[1] < data.width or \
+                data[neighbor].terrain == -1:
+                continue
+
+            if data[neighbor].dist > node.dist + data[neighbor].terrain:
                 data[neighbor].dist = node.dist + data[neighbor].terrain
                 data[neighbor].parent = node.pos
-                heapq.heappush(h, data[neighbor])
+                heapq.heappush(heap, data[neighbor])
 
     return data
 
@@ -104,7 +111,7 @@ def aStar(data, start, end, adjacency):
     data[start].g = 0
     heapq.heappush(openL, data[start])
 
-    for _ in data:      # until all nodes have been discovered
+    while openL:
         node = heapq.heappop(openL)
         closedL.append(node.pos)
 
@@ -113,7 +120,13 @@ def aStar(data, start, end, adjacency):
 
         for adjacent in adjacency:
             neighbor = (node.pos[0]+adjacent[0], node.pos[1]+adjacent[1])
-            if neighbor in data and neighbor not in closedL:        # also TRAVERSABLE (can do later)
+
+            # avoid out of bounds or walls
+            if not 0 <= neighbor[0] < data.height or \
+                not 0 <= neighbor[1] < data.width or \
+                data[neighbor].terrain == -1:
+                continue
+            if neighbor not in closedL:
                 h = abs(data[neighbor].pos[0] - end[0]) + abs(data[neighbor].pos[1] - end[1])
                 g = node.g + data[neighbor].terrain
                 f = g + h
@@ -127,65 +140,33 @@ def aStar(data, start, end, adjacency):
 
     return data
     
-def load(file):
-    with open(file) as f:
-        ROWS, COLS, moveType = f.readline().split()[:3]
-        map2D = [f.readline().rstrip('\n') for line in range(int(ROWS))]
-        adjacency = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        if moveType == 'D':
-            adjacency.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
+def findMinDist(npcData, mapData):
+    papers, base, start  = mapData.entities.values()
 
-        # if maxRow*maxCol != len(mapStr):    # az na konci!
-            # S - start (required)
-            # N - princesses (required)
-            # D - one dragon (required)
-            # E - end (optional)
-            # P - portal (optional)
-        #    print("Incorrect number of map characters")
-        #    return
-
-    mapTerr = {'N': 100, 'H': 2}
-    mapTerr = collections.defaultdict(lambda: 1, mapTerr)
-    princesses = []
-    mapData = {}
-    start = 0, 0
-
-    for i in range(int(ROWS)):
-        for j in range(int(COLS)):
-            if map2D[i][j] == 'D':
-                dragon = i, j
-            elif map2D[i][j] == 'P':
-                princesses.append((i, j))
-            elif map2D[i][j]  == 'S':
-                start = i, j
-            mapData[i, j] = Node((i, j), mapTerr[map2D[i][j]])
-    
-    return mapData, princesses, dragon, start, adjacency
-
-def findMinDist(npcData, princesses, dragon, start):
     mini = maxsize
 
-    for permutation in permutations(princesses):
-        distance = npcData[start][dragon].dist     # distance to get to dragon
-        for begin, finish in zip((dragon,)+permutation, permutation):
+    for permutation in permutations(papers):
+        distance = npcData[start][base].dist     # distance to get to dragon
+        for begin, finish in zip((base,)+permutation, permutation):
             distance += npcData[begin][finish].dist
         if distance < mini:
             mini, order = distance, permutation
 
-    return (start, dragon) + order, mini
+    return (start, base) + order, mini
 
-def karp(npcData, princesses, dragon, start):
-    princesses = frozenset(princesses)
+def karp(npcData, mapData):
+    papers, base, start  = mapData.entities.values()
+    papers = frozenset(papers)
     nodes = {}
 
-    for row in range(len(princesses)):              # set length
-        for comb in combinations(princesses, row):  # set value     (right side)
+    for row in range(len(papers)):              # set length
+        for comb in combinations(papers, row):  # set value     (right side)
             comb = frozenset(comb)
-            for finish in princesses - comb:        # destination   (left side)
+            for finish in papers - comb:        # destination   (left side)
                 routes = []
-                if comb == frozenset():             # case for dragon starting
-                    cost = npcData[dragon][finish].dist + npcData[start][dragon].dist
-                    nodes[finish, frozenset()] = cost, dragon
+                if comb == frozenset():             # case for base starting
+                    cost = npcData[base][finish].dist + npcData[start][base].dist
+                    nodes[finish, frozenset()] = cost, base
                 else:
                     for begin in comb:              # it always is a single value from the set
                         # when we have begin, we need to find combo of set length - 1 in which the begin isnt there
@@ -197,20 +178,20 @@ def karp(npcData, princesses, dragon, start):
 
     com = []
     for i, node in enumerate(reversed(dict(nodes))):
-        if i < len(princesses):
+        if i < len(papers):
             com.append((nodes.pop(node), node[0]))
-        elif i == len(princesses):
+        elif i == len(papers):
             val, step = min(com)
-            princesses -= {step}
+            papers -= {step}
             path = [step]
             cost, nextStep = val
             break
     
-    for _ in range(len(princesses)):
+    for _ in range(len(papers)):
         path.append(nextStep)
-        princesses -= {nextStep}
-        nextStep = nodes[nextStep, princesses][1]
-    path.extend([dragon, start])
+        papers -= {nextStep}
+        nextStep = nodes[nextStep, papers][1]
+    path.extend([base, start])
 
     return path[::-1], cost
 
@@ -233,6 +214,21 @@ def printSolution(path):
             print(step, end=' ')
     print()
 
+def setAdjacency(query):
+    moveType = [(-1, 0), (1, 0), (0, -1), (0, 1)]   # Manhattan
+    if query == 'D':                                # Diagonal
+        moveType.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
+    
+    return moveType
+
+def findPaths(mapData, adjacency):
+    papers, base, start  = mapData.entities.values()    # ? Order is ok from __loadMap I hope
+
+    objData = {p: dijkstra(copy.deepcopy(mapData), p, adjacency) for p in papers}
+    objData.update({start: aStar(copy.deepcopy(mapData), start, base, adjacency)})
+    objData.update({base: dijkstra(copy.deepcopy(mapData), base, adjacency)})
+
+    return objData
 
 def main():
     # DECLARATION: LOAD MAP TEMPLATE OR CREATE ONE (rocks)
@@ -252,39 +248,30 @@ def main():
         print("Evo could not find a solution, try again.")  # ToDo: default tries: 5 
         return
 
-    # INITIALIZATION: Add random npcs and save into text file
-    # load/save mapTerr into file
-    entities = generateEntities(mapTerr, 10)
+    # INITIALIZATION: Add random npcs
+    entities = generateEntities(mapTerr, 4)
     saveMap(mapTerr, 'yosh', entities)
 
     mapData = Map('yosh')
 
-    # Adding OOP
+    query2 = 'D'
+    query3 = 'S'     # ToDo: C: Climbing, S: Swamp
+    moveType = setAdjacency(query2)
 
-    # COMMIT ! 
-    # option of manhattan/diagonal moving set, adjacency, compute height/width
-    #mapData, princesses, dragon, start, adjacency = load("mapa8.txt")
-    '''
-    npcData = {p: dijkstra(copy.deepcopy(mapData), p, adjacency) for p in princesses}
-    npcData.update({start: aStar(copy.deepcopy(mapData), start, dragon, adjacency)}) # can use A* for different purposes tho
-    npcData.update({dragon: dijkstra(copy.deepcopy(mapData), dragon, adjacency)})
+    npcData = findPaths(mapData, moveType)
+    a=2
 
     print("Starting permutations")
-    order, dist = findMinDist(npcData, princesses, dragon, start)
+    order, dist = findMinDist(npcData, mapData)
     path = getPath(npcData, order)
     printSolution(path)
     print("Cost: " + str(dist))
 
     print("Starting Kerp")
-    order2, dist2 = karp(npcData, princesses, dragon, start)
+    order2, dist2 = karp(npcData, mapData)
     path2 = getPath(npcData, order2)
     printSolution(path2)
     print("Cost: " + str(dist2))
-
-    # add princess/dragon/start
-    # diagonal/manhattan
-    # mountain/stepWeight
-    '''
 
     a=1
     b=2
