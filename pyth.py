@@ -1,8 +1,15 @@
-import heapq, copy, collections, random, time, re
+import heapq
+import copy
+import random
+import time
+import re
 from sys import maxsize
-from itertools import permutations, combinations, product
+from itertools import permutations, combinations
 
-class PositionError(Exception): pass
+
+class PositionError(Exception):
+    pass
+
 
 class Map:
     def __init__(self, fileName):
@@ -15,20 +22,20 @@ class Map:
         self.__loadMap(fileName)
 
     def __loadMap(self, fileName):
-        # ToDo: validation checks on the file! make tests
-        # ToDo: is one paper enough to run held karp?
-        # ToDo: Check coordinate checkings, merge ANDs to > > compares, also all/any stuff
         entities = {'papers': [], 'base': None, 'start': None}
         nodes = {}
         with open(fileName + '.txt') as f:
             for i, line in enumerate(f):
                 for j, col in enumerate(line.split()):
                     if col[0] == '(':
-                        entities['papers'].append((i, j)); col = col[1:-1] 
+                        entities['papers'].append((i, j))
+                        col = col[1:-1]
                     elif col[0] == '[':
-                        entities['base'] = (i, j); col = col[1:-1]
+                        entities['base'] = (i, j)
+                        col = col[1:-1]
                     elif col[0] == '{':
-                        entities['start'] = (i, j); col = col[1:-1]
+                        entities['start'] = (i, j)
+                        col = col[1:-1]
                     nodes[i, j] = Node((i, j), int(col))
 
         if all(entities.values()):
@@ -41,17 +48,18 @@ class Map:
     def __getitem__(self, pos):
         assert len(pos) == 2, "Coordinate must have two values."
         if not (0 <= pos[0] < self.height) or \
-            not (0 <= pos[1] < self.width):
+           not (0 <= pos[1] < self.width):
             raise PositionError(str(pos))
         return self.nodes[pos]  # self.nodes.get(pos), no need setitem
 
     @property
     def width(self):
         return self.__width
-    
+
     @property
     def height(self):
         return self.__height
+
 
 class Node:
     def __init__(self, position, terrain):
@@ -67,6 +75,7 @@ class Node:
             return self.dist < other.dist
         return self.h < other.h
 
+
 def dijkstra(data, start, adjacency):
     heap = []
     data[start].dist = 0
@@ -79,8 +88,8 @@ def dijkstra(data, start, adjacency):
 
             # avoid out of bounds or walls
             if not 0 <= neighbor[0] < data.height or \
-                not 0 <= neighbor[1] < data.width or \
-                data[neighbor].terrain == -1:
+               not 0 <= neighbor[1] < data.width or \
+               data[neighbor].terrain == -1:
                 continue
 
             if data[neighbor].dist > node.dist + data[neighbor].terrain:
@@ -89,6 +98,7 @@ def dijkstra(data, start, adjacency):
                 heapq.heappush(heap, data[neighbor])
 
     return data
+
 
 def aStar(data, start, end, adjacency):
     openL = []
@@ -108,11 +118,13 @@ def aStar(data, start, end, adjacency):
 
             # avoid out of bounds or walls
             if not 0 <= neighbor[0] < data.height or \
-                not 0 <= neighbor[1] < data.width or \
-                data[neighbor].terrain == -1:
+               not 0 <= neighbor[1] < data.width or \
+               data[neighbor].terrain == -1:
                 continue
             if neighbor not in closedL:
-                h = abs(data[neighbor].pos[0] - end[0]) + abs(data[neighbor].pos[1] - end[1])
+                x = abs(data[neighbor].pos[0] - end[0])
+                y = abs(data[neighbor].pos[1] - end[1])
+                h = x + y
                 g = node.g + data[neighbor].terrain
                 f = g + h
                 if f < data[neighbor].dist:
@@ -124,9 +136,10 @@ def aStar(data, start, end, adjacency):
                     heapq.heappush(openL, data[neighbor])
 
     return data
-    
+
+
 def findMinDist(npcData, mapData):
-    papers, base, start  = mapData.entities.values()
+    papers, base, start = mapData.entities.values()
 
     mini = maxsize
 
@@ -139,27 +152,27 @@ def findMinDist(npcData, mapData):
 
     return (start, base) + order, mini
 
+
 def karp(npcData, mapData):
-    papers, base, start  = mapData.entities.values()
+    papers, base, start = mapData.entities.values()
     papers = frozenset(papers)
     nodes = {}
 
     for row in range(len(papers)):              # set length
         for comb in combinations(papers, row):  # set value     (right side)
             comb = frozenset(comb)
-            for finish in papers - comb:        # destination   (left side)
+            for dest in papers - comb:          # destination   (left side)
                 routes = []
-                if comb == frozenset():             # case for base starting
-                    cost = npcData[base][finish].dist + npcData[start][base].dist
-                    nodes[finish, frozenset()] = cost, base
+                if comb == frozenset():         # case for base starting
+                    cost = npcData[base][dest].dist + npcData[start][base].dist
+                    nodes[dest, frozenset()] = cost, base
                 else:
-                    for begin in comb:              # it always is a single value from the set
-                        # when we have begin, we need to find combo of set length - 1 in which the begin isnt there
-                        subcomb = comb - frozenset({begin})     # this is how we get previous level combo we needed
+                    for begin in comb:          # single val from set
+                        subcomb = comb - frozenset({begin})
                         prevCost = nodes[begin, subcomb][0]
-                        cost = npcData[begin][finish].dist + prevCost
+                        cost = npcData[begin][dest].dist + prevCost
                         routes.append((cost, begin))
-                    nodes[finish, comb] = min(routes)
+                    nodes[dest, comb] = min(routes)
 
     com = []
     for i, node in enumerate(reversed(dict(nodes))):
@@ -171,7 +184,7 @@ def karp(npcData, mapData):
             path = [step]
             cost, nextStep = val
             break
-    
+
     for _ in range(len(papers)):
         path.append(nextStep)
         papers -= {nextStep}
@@ -179,6 +192,7 @@ def karp(npcData, mapData):
     path.extend([base, start])
 
     return path[::-1], cost
+
 
 def getPath(npcData, order):
     path = []
@@ -192,6 +206,7 @@ def getPath(npcData, order):
 
     return path
 
+
 def printSolution(path):
     for i, road in enumerate(path, 1):
         print(f"\n{i}: ", end=' ')
@@ -199,38 +214,43 @@ def printSolution(path):
             print(step, end=' ')
     print()
 
+
 def setAdjacency(query):
     moveType = [(-1, 0), (1, 0), (0, -1), (0, 1)]   # Manhattan
     if query == 'D':                                # Diagonal
         moveType.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
-    
+
     return moveType
 
-def findPaths(mapData, adjacency):
-    papers, base, start  = mapData.entities.values()    # ? Order is ok from __loadMap I hope
 
-    objData = {p: dijkstra(copy.deepcopy(mapData), p, adjacency) for p in papers}
-    objData.update({start: aStar(copy.deepcopy(mapData), start, base, adjacency)})
-    objData.update({base: dijkstra(copy.deepcopy(mapData), base, adjacency)})
+def findPaths(mapData, adjacency):
+    papers, base, start = mapData.entities.values()
+
+    objData = {p: dijkstra
+               (copy.deepcopy(mapData), p, adjacency) for p in papers}
+    objData.update({start: aStar
+                   (copy.deepcopy(mapData), start, base, adjacency)})
+    objData.update({base: dijkstra
+                   (copy.deepcopy(mapData), base, adjacency)})
 
     return objData
 
+
 def main():
     # DECLARATION: LOAD MAP TEMPLATE OR CREATE ONE (rocks)
-    #query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
-    #query = "10x10 (12,2) (0,0)"
+    # query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
+    # query = "10x10 (12,2) (0,0)"
     query = "mapa11.txt"
 
     mapList = loadMapTemplate(query)
     if not mapList:
         print("Invalid query!")
         return
-    
+
     # INITIALIZATION: Add terrain
-    # ? Validation for correct mapList? I dont think its needed
-    mapTerr = initEvoMap(mapList, True) # True - debug
+    mapTerr = initEvoMap(mapList, True)     # True - debug
     if not mapTerr:
-        print("Evo could not find a solution, try again.")  # ToDo: default tries: 5 
+        print("Evo could not find a solution, try again.")
         return
 
     # INITIALIZATION: Add random npcs
@@ -240,11 +260,10 @@ def main():
     mapData = Map('yosh')
 
     query2 = 'D'
-    query3 = 'S'     # ToDo: C: Climbing, S: Swamp
+    # query3 = 'S'     # ToDo: C: Climbing, S: Swamp
     moveType = setAdjacency(query2)
 
     npcData = findPaths(mapData, moveType)
-    a=2
 
     print("Starting permutations")
     order, dist = findMinDist(npcData, mapData)
@@ -258,21 +277,23 @@ def main():
     printSolution(path2)
     print("Cost: " + str(dist2))
 
+
 def entityGenerator(mapTerr):
     reserved = set()
     for i, row in enumerate(mapTerr):
         for j, x in enumerate(row):
             if x == -1:
                 reserved.add((i, j))
-    
+
     while True:
-        x = random.randint(0, len(mapTerr) -1)
-        y = random.randint(0, len(mapTerr[0]) -1)
+        x = random.randint(0, len(mapTerr) - 1)
+        y = random.randint(0, len(mapTerr[0]) - 1)
         if (x, y) not in reserved:
             reserved.add((x, y))
             yield (x, y)
 
-def generateEntities(mapTerr, amount):        
+
+def generateEntities(mapTerr, amount):
     gen = entityGenerator(mapTerr)
 
     papers = [next(gen) for _ in range(amount)]
@@ -280,6 +301,7 @@ def generateEntities(mapTerr, amount):
     start = next(gen)
 
     return {'papers': papers, 'base': base, 'start': start}
+
 
 def saveMap(mapTerr, fileName, entities):
     with open(fileName + '.txt', 'w') as f:
@@ -295,11 +317,12 @@ def saveMap(mapTerr, fileName, entities):
                 f.write("{:^5}".format(string))
             f.write('\n')
 
+
 def loadMapTemplate(query):
     mapData = []
 
     # Load from string
-    if re.search('[0-9]+x[0-9]+(\ \([0-9]+,[0-9]+\))+$', query):
+    if re.search(r'[0-9]+x[0-9]+(\ \([0-9]+,[0-9]+\))+$', query):
         query = query.split()
         ROWS, COLS = map(int, query[0].split('x'))
         walls = {eval(coordinate) for coordinate in query[1:]}
@@ -308,11 +331,11 @@ def loadMapTemplate(query):
         for wall in walls:
             try:
                 mapData[wall[0]][wall[1]] = 1
-            except IndexError as e:
+            except IndexError:
                 mapData = None
 
     # Load from file
-    elif re.search('\.txt', query):
+    elif re.search(r'\.txt', query):
         with open(query) as f:
             line = f.readline().rstrip()
             mapData.append([int(column) for column in line])
@@ -328,6 +351,7 @@ def loadMapTemplate(query):
 
     return mapData
 
+
 def listToTuple(mapData):
     mapDate = {}
     for i, row in enumerate(mapData):
@@ -336,6 +360,7 @@ def listToTuple(mapData):
 
     return mapDate
 
+
 def initEvoMap(mapList, printStats):
     mapTuple = listToTuple(mapList)
     mapTuple = {key: -mapTuple[key] for key in mapTuple.keys()}
@@ -343,16 +368,16 @@ def initEvoMap(mapList, printStats):
     SHAPE = len(mapList), len(mapList[0])
     ROCKS = sum(val != 0 for val in mapTuple.values())
     TO_RAKE = SHAPE[0] * SHAPE[1] - ROCKS
-    GENES = (SHAPE[0] + SHAPE[1]) * 2   # gene - an intruction (PERIMETER)
-    CHROMOSOMES = 30                    # chromosome - solution that is defined by order of genes
-    GENERATIONS = 100                   # generation - set of all chromozomes
+    GENES = (SHAPE[0] + SHAPE[1]) * 2  # gene - an intruction (PERIMETER)
+    CHROMOSOMES = 30                   # chromosome - solution defined by genes
+    GENERATIONS = 100                  # generation - set of all chromozomes
 
     MIN_MUT_RATE = 0.05
     MAX_MUT_RATE = 0.80
     CROSS_RATE = 0.90
 
     startTime = time.time()
-    generationTimes = []
+    genTimes = []
     prevMax = 0
     foundSolution = False
 
@@ -368,54 +393,57 @@ def initEvoMap(mapList, printStats):
     mutRate = MIN_MUT_RATE
     for i in range(GENERATIONS):
         genTime = time.time()
-        
+
         # evaluate all chromosomes and find the best one
-        fitness, fMax, jMax = [], 0, 0
+        fit, fMax, jMax = [], 0, 0
         for j in range(CHROMOSOMES):
-            unraked, filled = rakeGarden(population[j], copy.copy(mapTuple), SHAPE)
+            unraked, fills = rakeMap(population[j], copy.copy(mapTuple), SHAPE)
             raked = TO_RAKE - unraked
-            fitness.append(raked)
+            fit.append(raked)
             if raked > fMax:
-                jMax, fMax, mMap = j, raked, filled
+                jMax, fMax, mMap = j, raked, fills
 
         if prevMax < fMax:
-            print(f"Generation: {i+1},   Max raked: {fMax} (out of {TO_RAKE}),   Mutation rate: {round(mutRate, 2)}")
+            print(f"Generation: {i+1},   Max raked: {fMax} (out of {TO_RAKE}), \
+               Mutation rate: {round(mutRate, 2)}")
         if fMax == TO_RAKE:
             foundSolution = True
             break
-        
+
         # increasing mutation each generation change to prevent local maximums
         mutRate = mutRate if mutRate >= MAX_MUT_RATE else mutRate + 0.01
 
-        # loop for creating next generation, 1 iteration for 2 populations that we mutate
+        # next generation creating, 1 iteration for 2 populations
         children = []
         for i in range(0, CHROMOSOMES, 2):
 
             # pick 2 better chromosomes out of 4
             pick = random.sample(range(CHROMOSOMES), 4)
-            better1 = pick[0] if fitness[pick[0]] > fitness[pick[1]] else pick[1]
-            better2 = pick[2] if fitness[pick[2]] > fitness[pick[3]] else pick[3]
+            better1 = pick[0] if fit[pick[0]] > fit[pick[1]] else pick[1]
+            better2 = pick[2] if fit[pick[2]] > fit[pick[3]] else pick[3]
 
             # copying better genes to 2 child chromosomes
-            children.extend([[],[]])
+            children.extend([[], []])
             for j in range(GENES-1):
                 children[i].append(population[better1][j])
                 children[i+1].append(population[better2][j])
 
-            # mutating 2 chromosomes with uniform crossover (both inherit the same amount of genetic info)
+            # mutating 2 chromosomes with uniform crossover
+            # (both inherit the same amount of genetic info)
             if random.random() < CROSS_RATE:
                 for c in range(2):
                     for g in range(GENES-1):
                         if random.random() < mutRate:
 
                             # search for gene with mutNum number
-                            mutNum = random.randint(1, GENES) * random.choice([-1, 1])
+                            mutNum = random.randint(1, GENES)
+                            mutNum *= random.choice([-1, 1])
                             f = 0
                             for k, gene in enumerate(children[i+c]):
                                 if gene == mutNum:
                                     f = k
 
-                            # if found, swap it with g gene, if not, replace g with it
+                            # swap it with g gene, else replace g with it
                             if f:
                                 tmp = children[i+c][g]
                                 children[i+c][g] = children[i+c][f]
@@ -430,15 +458,17 @@ def initEvoMap(mapList, printStats):
         population = children
 
         prevMax = fMax
-        generationTimes.append(time.time() - genTime)
+        genTimes.append(time.time() - genTime)
 
     # printing stats, solution and map
     if printStats:
         total = round(time.time() - startTime, 2)
-        avg = round(sum(generationTimes) / len(generationTimes), 2) if generationTimes else total
+        avg = round(sum(genTimes) / len(genTimes), 2) if genTimes else total
         chromo = " ".join(map(str, population[jMax]))
-        print("{} a solution!".format("Found" if foundSolution else "Couldn't find"))
-        print(f"Total time elapsed is {total}s, each generation took {avg}s in average.")
+        print("{} a solution!".format
+              ("Found" if foundSolution else "Couldn't find"))
+        print(f"Total time elapsed is {total}s, \
+            each generation took {avg}s in average.")
         print(f"Chromosome: {chromo}")
 
         for row in mMap:
@@ -448,7 +478,8 @@ def initEvoMap(mapList, printStats):
 
     return mMap if foundSolution else []
 
-def rakeGarden(chromozome, mapTuple, SHAPE):
+
+def rakeMap(chromozome, mapTuple, SHAPE):
     ROWS, COLS = SHAPE[0], SHAPE[1]
     HALF_PERIMETER = SHAPE[0] + SHAPE[1]
     UNRAKED = 0
@@ -466,20 +497,20 @@ def rakeGarden(chromozome, mapTuple, SHAPE):
             pos, move = (posNum-HALF_PERIMETER-1, COLS-1), (0, -1)
         else:                                      # go UP      <40, 60)
             pos, move = (ROWS-1, posNum-HALF_PERIMETER-ROWS-1), (-1, 0)
-        
+
         # checking whether we can enter the garden with current pos
         if mapTuple[pos] == UNRAKED:
             parents = {}
             parent = 0
 
-            # move until we reach end of the map 
+            # move until we reach end of the map
             while 0 <= pos[0] < ROWS and 0 <= pos[1] < COLS:
 
                 # collision to raked sand/rock
                 if mapTuple[pos] != UNRAKED:
                     pos = parent            # get previous pos
                     parent = parents[pos]   # get previous parent
-                    
+
                     # change moving direction
                     if move[0] != 0:    # Y -> X
                         right = pos[0], pos[1] + 1
@@ -539,7 +570,7 @@ def rakeGarden(chromozome, mapTuple, SHAPE):
 
             order += 1
 
-    filled = []
+    fills = []
     unraked = 0
     j = -1
     for i, fill in enumerate(mapTuple.values()):
@@ -547,20 +578,27 @@ def rakeGarden(chromozome, mapTuple, SHAPE):
             unraked += 1
         if i % COLS == 0:
             j += 1
-            filled.append([])
-        filled[j].append(fill)
+            fills.append([])
+        fills[j].append(fill)
 
-    return unraked, filled
+    return unraked, fills
+
 
 main()
 
-#objs:
 # snowflake8, docstring
+# (check naming convetions for classes, variables, methods, constants)
 # ToDo: karp (+ shortest subset combo) ?, C: Climbing, S: Swamp
-# ToDo: validation checks on the file! make tests
-# ToDo: is one paper enough to run held karp?
-# ToDo: Check coordinate checkings, merge ANDs to > > compares, also all/any stuff
+
+# ToDo: __loadMap
+# ToDo:     validation checks on the file! make tests
+# ToDo:     is one paper enough to run held karp?
+# ToDo:     Check coordinate checkings, merge ANDs to > > compares
+# ToDo:     also all/any stuff
+
 # ToDo: default tries: 5
 
 # ToDo: docstring, creating tests (finalize)
 # ToDo: Rule based system (Family relations) each paper is one fact
+# ? papers, base, start = mapData.entities.values()
+# ?     Order is ok from __loadMap I hope
