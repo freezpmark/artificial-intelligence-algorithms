@@ -2,25 +2,63 @@ import heapq, copy, collections, random, time, re
 from sys import maxsize
 from itertools import permutations, combinations, product
 
+class PositionError(Exception): pass
+
 class Map:
-    def __init__(self, width=0, height=0, data=[]):
-        self.data = data
-        self.width = width
-        self.height = height
 
-    @property
-    def data(self, coordinate):
-        assert len(coordinate) != 2, "Coordinate needs iterable Invalid coordinate"
+    def __init__(self, fileName):
+        self.fileName = None
+        self.nodes = None
+        self.entities = None
+        self.__width = None
+        self.__height = None
 
-        return self.__data[coordinate]
+        self.__loadMap(fileName)
 
+    def __loadMap(self, fileName):
+        # ToDo: validation checks on the file! make tests
+        # ToDo: is one paper enough to run held karp?
+        # ToDo: Check coordinate checkings, merge ANDs to > > compares
+        entities = {'papers': [], 'base': None, 'start': None}
+        nodes = {}
+        with open(fileName + '.txt') as f:
+            for i, line in enumerate(f):
+                for j, col in enumerate(line.split()):
+                    if col[0] == '(':
+                        entities['papers'].append((i, j)); col = col[1:-1] 
+                    elif col[0] == '[':
+                        entities['base'] = (i, j); col = col[1:-1]
+                    elif col[0] == '{':
+                        entities['start'] = (i, j); col = col[1:-1]
+                    nodes[i, j] = Node((i, j), int(col))
 
-# create conversion from [][] to ()
-    @data.setter
-    def data(self, coordinate, node):
-        pass
+        if all(entities.values()):
+            self.fileName = fileName
+            self.nodes = nodes
+            self.entities = entities
+            self.__height = i+1
+            self.__width = j+1
 
-        # self.__data = mapData
+    def __getitem__(self, pos):
+        assert len(pos) == 2, "Coordinate must have two values."
+        if not (0 <= pos[0] < self.height) or \
+            not (0 <= pos[1] < self.width):
+            raise PositionError(str(pos))
+        return self.nodes[pos]  # self.nodes.get(pos)
+
+    '''
+    def __setitem__(self, pos, val):
+        assert len(pos) == 2, "Coordinate must have two values."
+        if not (0 <= pos[0] < self.height) or
+            not (0 <= pos[1] < self.width):
+            raise PositionError(str(pos))
+
+        # depend on what were trying to do.. well have to test this
+        self.nodes[pos].parent = val 
+        self.nodes[pos].dist = val 
+        self.nodes[pos].g = val 
+        self.nodes[pos].h = val 
+    '''
 
     @property
     def width(self):
@@ -29,7 +67,6 @@ class Map:
     @property
     def height(self):
         return self.__height
-
 
 class Node:
     def __init__(self, position, terrain):
@@ -44,10 +81,6 @@ class Node:
         if self.dist != other.dist:
             return self.dist < other.dist
         return self.h < other.h
-
-# add princess/dragon/start
-# diagonal/manhattan
-# mountain/stepWeight
 
 def dijkstra(data, start, adjacency):
     h = []
@@ -94,10 +127,6 @@ def aStar(data, start, end, adjacency):
 
     return data
     
-
-
-
-
 def load(file):
     with open(file) as f:
         ROWS, COLS, moveType = f.readline().split()[:3]
@@ -206,7 +235,34 @@ def printSolution(path):
 
 
 def main():
+    # DECLARATION: LOAD MAP TEMPLATE OR CREATE ONE (rocks)
+    #query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
+    #query = "10x10 (12,2) (0,0)"
+    query = "mapa11.txt"
 
+    mapList = loadMapTemplate(query)
+    if not mapList:
+        print("Invalid query!")
+        return
+    
+    # INITIALIZATION: Add terrain
+    # ? Validation for correct mapList? I dont think its needed
+    mapTerr = initEvoMap(mapList, True) # True - debug
+    if not mapTerr:
+        print("Evo could not find a solution, try again.")  # ToDo: default tries: 5 
+        return
+
+    # INITIALIZATION: Add random npcs and save into text file
+    # load/save mapTerr into file
+    entities = generateEntities(mapTerr, 10)
+    saveMap(mapTerr, 'yosh', entities)
+
+    mapData = Map('yosh')
+
+    # Adding OOP
+
+    # COMMIT ! 
+    # option of manhattan/diagonal moving set, adjacency, compute height/width
     #mapData, princesses, dragon, start, adjacency = load("mapa8.txt")
     '''
     npcData = {p: dijkstra(copy.deepcopy(mapData), p, adjacency) for p in princesses}
@@ -225,42 +281,52 @@ def main():
     printSolution(path2)
     print("Cost: " + str(dist2))
 
-    ### ZEN GARDEN ###
-
+    # add princess/dragon/start
+    # diagonal/manhattan
+    # mountain/stepWeight
     '''
-    #query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
-    query = "mapa11.txt"
-    #query = "10x10 (12,2) (0,0)"
 
-    mapList = declareMap(query)
-    if not mapList:
-        print("Invalid query!")
-        return
-    
-    # ? Validation for correct mapList? I dont think its needed
-    mapData = initEvoMap(mapList, True)
-    if not mapData:
-        print("Evo could not find a solution, try again.")
-        return
-
-    saveMap(mapData, 'yosh')
-    mapData2 = loadMap('yosh')
-
-    # SOLVING! PATH INC!
     a=1
     b=2
 
+def entityGenerator(mapTerr):
+    reserved = set()
+    for i, row in enumerate(mapTerr):
+        for j, x in enumerate(row):
+            if x == -1:
+                reserved.add((i, j))
+    
+    while True:
+        x = random.randint(0, len(mapTerr) -1)
+        y = random.randint(0, len(mapTerr[0]) -1)
+        if (x, y) not in reserved:
+            reserved.add((x, y))
+            yield (x, y)
 
-def loadMap(fileName):
-    with open(fileName + '.txt') as f:
-        return [list(map(int, line.rstrip('\n').split())) for line in f]
+def generateEntities(mapTerr, amount):        
+    gen = entityGenerator(mapTerr)
 
-def saveMap(mapData, fileName):
+    papers = [next(gen) for _ in range(amount)]
+    base = next(gen)
+    start = next(gen)
+
+    return {'papers': papers, 'base': base, 'start': start}
+
+def saveMap(mapTerr, fileName, entities):
     with open(fileName + '.txt', 'w') as f:
-        for row in mapData:
-            f.write(' '.join(map(str, row)) + '\n')
+        for i, row in enumerate(mapTerr):
+            for j, col in enumerate(row):
+                string = str(mapTerr[i][j])
+                if (i, j) in entities['papers']:
+                    string = '(' + string + ')'
+                elif (i, j) == entities['base']:
+                    string = '[' + string + ']'
+                elif (i, j) == entities['start']:
+                    string = '{' + string + '}'
+                f.write("{:^5}".format(string))
+            f.write('\n')
 
-def declareMap(query):
+def loadMapTemplate(query):
     mapData = []
 
     # Load from string
@@ -520,10 +586,6 @@ def rakeGarden(chromozome, mapTuple, SHAPE):
 main()
 
 #objs:
-# read book for OOP class, agregation, etc.
-# apply rules somehow and make simulation (would be better without resources, just moves)
-# race of 3 playres in random positions
-
-# modify held karp for shortest subset
-
-# docstring, snowflake8 FIXING later (finalize)
+# OOP, karp (+ shortest subset combo) ?
+# docstring, snowflake8 FIXING later, creating tests (finalize)
+# Rule based system (Family relations) each princess is one fact
