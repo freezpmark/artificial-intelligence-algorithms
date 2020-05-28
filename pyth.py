@@ -5,7 +5,6 @@ from itertools import permutations, combinations, product
 class PositionError(Exception): pass
 
 class Map:
-
     def __init__(self, fileName):
         self.fileName = None
         self.nodes = None
@@ -18,7 +17,7 @@ class Map:
     def __loadMap(self, fileName):
         # ToDo: validation checks on the file! make tests
         # ToDo: is one paper enough to run held karp?
-        # ToDo: Check coordinate checkings, merge ANDs to > > compares
+        # ToDo: Check coordinate checkings, merge ANDs to > > compares, also all/any stuff
         entities = {'papers': [], 'base': None, 'start': None}
         nodes = {}
         with open(fileName + '.txt') as f:
@@ -44,21 +43,7 @@ class Map:
         if not (0 <= pos[0] < self.height) or \
             not (0 <= pos[1] < self.width):
             raise PositionError(str(pos))
-        return self.nodes[pos]  # self.nodes.get(pos)
-
-    '''
-    def __setitem__(self, pos, val):
-        assert len(pos) == 2, "Coordinate must have two values."
-        if not (0 <= pos[0] < self.height) or
-            not (0 <= pos[1] < self.width):
-            raise PositionError(str(pos))
-
-        # depend on what were trying to do.. well have to test this
-        self.nodes[pos].parent = val 
-        self.nodes[pos].dist = val 
-        self.nodes[pos].g = val 
-        self.nodes[pos].h = val 
-    '''
+        return self.nodes[pos]  # self.nodes.get(pos), no need setitem
 
     @property
     def width(self):
@@ -272,9 +257,6 @@ def main():
     path2 = getPath(npcData, order2)
     printSolution(path2)
     print("Cost: " + str(dist2))
-
-    a=1
-    b=2
 
 def entityGenerator(mapTerr):
     reserved = set()
@@ -573,6 +555,12 @@ def rakeGarden(chromozome, mapTuple, SHAPE):
 main()
 
 #objs:
-# OOP, karp (+ shortest subset combo) ?
-# docstring, snowflake8 FIXING later, creating tests (finalize)
-# Rule based system (Family relations) each princess is one fact
+# snowflake8, docstring
+# ToDo: karp (+ shortest subset combo) ?, C: Climbing, S: Swamp
+# ToDo: validation checks on the file! make tests
+# ToDo: is one paper enough to run held karp?
+# ToDo: Check coordinate checkings, merge ANDs to > > compares, also all/any stuff
+# ToDo: default tries: 5
+
+# ToDo: docstring, creating tests (finalize)
+# ToDo: Rule based system (Family relations) each paper is one fact
