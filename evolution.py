@@ -31,7 +31,7 @@ def create(query, attempts, papers):
     entities = generateEntities(map_terrained, papers)
     saveMap(map_terrained, 'evo_' + file_name, entities)
 
-    return True
+    return file_name
 
 
 def entityGenerator(map_terrained):

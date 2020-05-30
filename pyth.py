@@ -22,7 +22,7 @@ class Map:
     def __loadMap(self, file_name):
         entities = {'papers': [], 'base': None, 'start': None}
         nodes = {}
-        with open(file_name + '.txt') as f:
+        with open(file_name) as f:
             for i, line in enumerate(f):
                 for j, col in enumerate(line.split()):
                     if col[0] == '(':
@@ -275,18 +275,18 @@ def findPaths(map_data, moves):
 
 
 def main():
-    query = "mapa11.txt"
+    query = "amap.txt"  # SAME AS: "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
     attempts = 3
     papers = 3
     moving_direction = "M"
     # ToDo: terrain_type = "C"
 
-    created_file = evolution.create(query, attempts, papers)
-    if not created_file:
+    file_name = evolution.create(query, attempts, papers)
+    if not file_name:
         return
 
     # ? no need to check every step, remake inc
-    map_data = Map('evo_' + query)
+    map_data = Map('evo_' + file_name)
     if not map_data:
         print("Invalid map!")
         return
