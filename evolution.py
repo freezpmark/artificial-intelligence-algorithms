@@ -85,7 +85,7 @@ def saveMap(map_terrained, file_name, entities):
         file_name {str} -- name of the text file we're saving the map into
         entities {dict} -- has 3 entity keys as names with coordinate values
     """
-    with open(file_name, 'w') as f:
+    with open("maps/" + file_name, 'w') as f:
         for i, row in enumerate(map_terrained):
             for j in range(len(row)):
                 string = str(map_terrained[i][j])
@@ -133,7 +133,7 @@ def loadWalls(query):
 
     # Load from file
     elif re.search(r'\.txt', query):
-        with open(query) as f:
+        with open("maps/" + query) as f:
             line = f.readline().rstrip()
             map_walls.append([int(column) for column in line])
             prev_length = len(line)

@@ -22,7 +22,7 @@ class Map:
     def __loadMap(self, file_name):
         entities = {'papers': [], 'base': None, 'start': None}
         nodes = {}
-        with open(file_name) as f:
+        with open("maps/" + file_name) as f:
             for i, line in enumerate(f):
                 for j, col in enumerate(line.split()):
                     if col[0] == '(':
