@@ -1,6 +1,6 @@
 import heapq
 import copy
-import evolution
+from simulation import evolution
 from sys import maxsize
 from itertools import permutations, combinations
 
