@@ -1,7 +1,7 @@
+import copy
 import random
 import re
 import time
-import copy
 
 
 def create(query, attempts, papers):
@@ -29,7 +29,7 @@ def create(query, attempts, papers):
 
     # INITIALIZATION: Add entities at random places
     entities = generateEntities(map_terrained, papers)
-    saveMap(map_terrained, 'evo_' + file_name, entities)
+    saveMap(map_terrained, "evo_" + file_name, entities)
 
     return file_name
 
@@ -73,7 +73,7 @@ def generateEntities(map_terrained, amount):
     base = next(gen)
     start = next(gen)
 
-    return {'papers': papers, 'base': base, 'start': start}
+    return {"papers": papers, "base": base, "start": start}
 
 
 def saveMap(map_terrained, file_name, entities):
@@ -85,18 +85,18 @@ def saveMap(map_terrained, file_name, entities):
         file_name {str} -- name of the text file we're saving the map into
         entities {dict} -- has 3 entity keys as names with coordinate values
     """
-    with open("maps/" + file_name, 'w') as f:
+    with open("maps/" + file_name, "w") as f:
         for i, row in enumerate(map_terrained):
             for j in range(len(row)):
                 string = str(map_terrained[i][j])
-                if (i, j) in entities['papers']:
-                    string = '(' + string + ')'
-                elif (i, j) == entities['base']:
-                    string = '[' + string + ']'
-                elif (i, j) == entities['start']:
-                    string = '{' + string + '}'
+                if (i, j) in entities["papers"]:
+                    string = "(" + string + ")"
+                elif (i, j) == entities["base"]:
+                    string = "[" + string + "]"
+                elif (i, j) == entities["start"]:
+                    string = "{" + string + "}"
                 f.write("{:^5}".format(string))
-            f.write('\n')
+            f.write("\n")
 
 
 def loadWalls(query):
@@ -117,9 +117,9 @@ def loadWalls(query):
     map_walls = []
 
     # Load from string
-    if re.search(r'[0-9]+x[0-9]+(\ \([0-9]+,[0-9]+\))+$', query):
+    if re.search(r"[0-9]+x[0-9]+(\ \([0-9]+,[0-9]+\))+$", query):
         query = query.split()
-        ROWS, COLS = map(int, query[0].split('x'))
+        ROWS, COLS = map(int, query[0].split("x"))
         walls = {eval(coordinate) for coordinate in query[1:]}
         map_walls = [[0] * COLS for _ in range(ROWS)]
 
@@ -129,10 +129,10 @@ def loadWalls(query):
             except IndexError:
                 map_walls = None
 
-        file_name = 'commanded.txt'
+        file_name = "commanded.txt"
 
     # Load from file
-    elif re.search(r'\.txt', query):
+    elif re.search(r"\.txt", query):
         with open("maps/" + query) as f:
             line = f.readline().rstrip()
             map_walls.append([int(column) for column in line])
@@ -182,9 +182,9 @@ def evolutionize(map_list, attempts, print_stats):
         SHAPE = len(map_list), len(map_list[0])
         ROCKS = sum(val != 0 for val in map_tuple.values())
         TO_RAKE = SHAPE[0] * SHAPE[1] - ROCKS
-        GENES = (SHAPE[0] + SHAPE[1]) * 2    # gene - an intruction (PERIMETER)
-        CHROMOSOMES = 30               # chromosome - solution defined by genes
-        GENERATIONS = 100              # generation - set of all chromosomes
+        GENES = (SHAPE[0] + SHAPE[1]) * 2  # gene - an intruction (PERIMETER)
+        CHROMOSOMES = 30  # chromosome - solution defined by genes
+        GENERATIONS = 100  # generation - set of all chromosomes
 
         MIN_MUT_RATE = 0.05
         MAX_MUT_RATE = 0.80
@@ -196,7 +196,7 @@ def evolutionize(map_list, attempts, print_stats):
 
         # generating chromosomes for one population/generation
         population = []
-        genes = random.sample(range(1, GENES), GENES-1)
+        genes = random.sample(range(1, GENES), GENES - 1)
         for _ in range(CHROMOSOMES):
             random.shuffle(genes)
             chromosome = [num * random.choice([-1, 1]) for num in genes]
@@ -211,7 +211,8 @@ def evolutionize(map_list, attempts, print_stats):
             fit, fit_max, j_max = [], 0, 0
             for j in range(CHROMOSOMES):
                 unraked, fills = rakeMap(
-                    population[j], copy.copy(map_tuple), SHAPE)
+                    population[j], copy.copy(map_tuple), SHAPE
+                )
                 raked = TO_RAKE - unraked
                 fit.append(raked)
                 if raked > fit_max:
@@ -227,7 +228,9 @@ def evolutionize(map_list, attempts, print_stats):
                 break
 
             # increase mutation rate each generation to prevent local maximums
-            mut_rate = mut_rate if mut_rate >= MAX_MUT_RATE else mut_rate + .01
+            mut_rate = (
+                mut_rate if mut_rate >= MAX_MUT_RATE else mut_rate + 0.01
+            )
 
             # next generation creating, 1 iteration for 2 populations
             children = []
@@ -240,35 +243,35 @@ def evolutionize(map_list, attempts, print_stats):
 
                 # copying better genes to 2 child chromosomes
                 children.extend([[], []])
-                for j in range(GENES-1):
+                for j in range(GENES - 1):
                     children[i].append(population[better1][j])
-                    children[i+1].append(population[better2][j])
+                    children[i + 1].append(population[better2][j])
 
                 # mutating 2 chromosomes with uniform crossover
                 # (both inherit the same amount of genetic info)
                 if random.random() < CROSS_RATE:
                     for c in range(2):
-                        for g in range(GENES-1):
+                        for g in range(GENES - 1):
                             if random.random() < mut_rate:
 
                                 # search for gene with mut_num number
                                 mut_num = random.randint(1, GENES)
                                 mut_num *= random.choice([-1, 1])
                                 f = 0
-                                for k, gene in enumerate(children[i+c]):
+                                for k, gene in enumerate(children[i + c]):
                                     if gene == mut_num:
                                         f = k
 
                                 # swap it with g gene, else replace g with it
                                 if f:
-                                    tmp = children[i+c][g]
-                                    children[i+c][g] = children[i+c][f]
-                                    children[i+c][f] = tmp
+                                    tmp = children[i + c][g]
+                                    children[i + c][g] = children[i + c][f]
+                                    children[i + c][f] = tmp
                                 else:
-                                    children[i+c][g] = mut_num
+                                    children[i + c][g] = mut_num
 
             # keep the best chromosome for next generation
-            for i in range(GENES-1):
+            for i in range(GENES - 1):
                 children[0][i] = population[j_max][i]
 
             population = children
@@ -281,15 +284,18 @@ def evolutionize(map_list, attempts, print_stats):
             total = round(time.time() - start_time, 2)
             avg = round(sum(gen_times) / len(gen_times), 2)
             chromo = " ".join(map(str, population[j_max]))
-            print("{} a solution!".format(
-                "Found" if found_solution else "Couldn't find"))
+            print(
+                "{} a solution!".format(
+                    "Found" if found_solution else "Couldn't find"
+                )
+            )
             print(f"Total time elapsed is {total}s,", end="\t")
             print(f"each generation took {avg}s in average.")
             print(f"Chromosome: {chromo}")
 
             for row in map_filled:
                 for col in row:
-                    print("{0:2}".format(col), end=' ')
+                    print("{0:2}".format(col), end=" ")
                 print()
             attempt_number += 1
             if not found_solution and attempt_number <= attempts:
@@ -320,14 +326,17 @@ def rakeMap(chromosome, map_tuple, SHAPE):
 
         # get starting position and movement direction
         pos_num = abs(gene)
-        if pos_num <= COLS:                         # go DOWN
-            pos, move = (0, pos_num-1), (1, 0)
-        elif pos_num <= HALF_PERIMETER:             # go RIGHT
-            pos, move = (pos_num-COLS-1, 0), (0, 1)
-        elif pos_num <= HALF_PERIMETER + ROWS:      # go LEFT
-            pos, move = (pos_num-HALF_PERIMETER-1, COLS-1), (0, -1)
-        else:                                       # go UP
-            pos, move = (ROWS-1, pos_num-HALF_PERIMETER-ROWS-1), (-1, 0)
+        if pos_num <= COLS:  # go DOWN
+            pos, move = (0, pos_num - 1), (1, 0)
+        elif pos_num <= HALF_PERIMETER:  # go RIGHT
+            pos, move = (pos_num - COLS - 1, 0), (0, 1)
+        elif pos_num <= HALF_PERIMETER + ROWS:  # go LEFT
+            pos, move = (pos_num - HALF_PERIMETER - 1, COLS - 1), (0, -1)
+        else:  # go UP
+            pos, move = (
+                (ROWS - 1, pos_num - HALF_PERIMETER - ROWS - 1),
+                (-1, 0),
+            )
 
         # checking whether we can enter the garden with current pos
         if map_tuple[pos] == UNRAKED:
@@ -339,13 +348,13 @@ def rakeMap(chromosome, map_tuple, SHAPE):
 
                 # collision to raked sand/rock
                 if map_tuple[pos] != UNRAKED:
-                    pos = parent            # get previous pos
-                    parent = parents[pos]   # get previous parent
+                    pos = parent  # get previous pos
+                    parent = parents[pos]  # get previous parent
 
                     # change moving direction
-                    if move[0] != 0:    # Y -> X
-                        R = pos[0], pos[1]+1
-                        L = pos[0], pos[1]-1
+                    if move[0] != 0:  # Y -> X
+                        R = pos[0], pos[1] + 1
+                        L = pos[0], pos[1] - 1
                         R_inbound = R[1] < COLS
                         L_inbound = L[1] >= 0
                         R = R_inbound and map_tuple[R] == UNRAKED
@@ -360,11 +369,11 @@ def rakeMap(chromosome, map_tuple, SHAPE):
                         elif R_inbound and L_inbound:
                             move = False
                         else:
-                            break   # reached end of the map so we can leave
+                            break  # reached end of the map so we can leave
 
-                    else:               # X -> Y
-                        D = pos[0]+1, pos[1]
-                        U = pos[0]-1, pos[1]
+                    else:  # X -> Y
+                        D = pos[0] + 1, pos[1]
+                        U = pos[0] - 1, pos[1]
                         D_inbound = D[0] < ROWS
                         U_inbound = U[0] >= 0
                         D = D_inbound and map_tuple[D] == UNRAKED
@@ -393,7 +402,7 @@ def rakeMap(chromosome, map_tuple, SHAPE):
                 map_tuple[pos] = order
                 parents[pos] = parent
                 parent = pos
-                pos = pos[0]+move[0], pos[1]+move[1]
+                pos = pos[0] + move[0], pos[1] + move[1]
 
             order += 1
 

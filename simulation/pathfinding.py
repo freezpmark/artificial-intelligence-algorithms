@@ -1,8 +1,9 @@
-import heapq
 import copy
-from simulation import evolution
+import heapq
+from itertools import combinations, permutations
 from sys import maxsize
-from itertools import permutations, combinations
+
+from simulation import evolution
 
 
 class PositionError(Exception):
@@ -20,33 +21,32 @@ class Map:
         self.__loadMap(file_name)
 
     def __loadMap(self, file_name):
-        entities = {'papers': [], 'base': None, 'start': None}
+        entities = {"papers": [], "base": None, "start": None}
         nodes = {}
         with open("maps/" + file_name) as f:
             for i, line in enumerate(f):
                 for j, col in enumerate(line.split()):
-                    if col[0] == '(':
-                        entities['papers'].append((i, j))
+                    if col[0] == "(":
+                        entities["papers"].append((i, j))
                         col = col[1:-1]
-                    elif col[0] == '[':
-                        entities['base'] = (i, j)
+                    elif col[0] == "[":
+                        entities["base"] = (i, j)
                         col = col[1:-1]
-                    elif col[0] == '{':
-                        entities['start'] = (i, j)
+                    elif col[0] == "{":
+                        entities["start"] = (i, j)
                         col = col[1:-1]
                     nodes[i, j] = Node((i, j), int(col))
 
-        if all(entities.values()) and len(entities['papers']) > 1:
+        if all(entities.values()) and len(entities["papers"]) > 1:
             self.file_name = file_name
             self.nodes = nodes
             self.entities = entities
-            self.__height = i+1
-            self.__width = j+1
+            self.__height = i + 1
+            self.__width = j + 1
 
     def __getitem__(self, pos):
         assert len(pos) == 2, "Coordinate must have two values."
-        if not (0 <= pos[0] < self.height) or \
-           not (0 <= pos[1] < self.width):
+        if not (0 <= pos[0] < self.height) or not (0 <= pos[1] < self.width):
             raise PositionError(str(pos))
         return self.nodes[pos]  # self.nodes.get(pos)
 
@@ -63,8 +63,8 @@ class Node:
     def __init__(self, pos, terrain):
         self.pos = pos
         self.terrain = terrain
-        self.parent = -1        # node position from which we got to this node
-        self.dist = maxsize     # distance from starting node to current node
+        self.parent = -1  # node position from which we got to this node
+        self.dist = maxsize  # distance from starting node to current node
         self.g = maxsize
         self.h = maxsize
 
@@ -82,12 +82,14 @@ def dijkstra(data, start, moves):
     while heap:
         node = heapq.heappop(heap)
         for adjacent in moves:
-            neighbor = (node.pos[0]+adjacent[0], node.pos[1]+adjacent[1])
+            neighbor = (node.pos[0] + adjacent[0], node.pos[1] + adjacent[1])
 
             # avoid out of bounds or walls
-            if not 0 <= neighbor[0] < data.height or \
-               not 0 <= neighbor[1] < data.width or \
-               data[neighbor].terrain == -1:
+            if (
+                not 0 <= neighbor[0] < data.height
+                or not 0 <= neighbor[1] < data.width
+                or data[neighbor].terrain == -1
+            ):
                 continue
 
             if data[neighbor].dist > node.dist + data[neighbor].terrain:
@@ -112,12 +114,14 @@ def aStar(data, start, end, moves):
             break
 
         for adjacent in moves:
-            neighbor = (node.pos[0]+adjacent[0], node.pos[1]+adjacent[1])
+            neighbor = (node.pos[0] + adjacent[0], node.pos[1] + adjacent[1])
 
             # avoid out of bounds or walls
-            if not 0 <= neighbor[0] < data.height or \
-               not 0 <= neighbor[1] < data.width or \
-               data[neighbor].terrain == -1:
+            if (
+                not 0 <= neighbor[0] < data.height
+                or not 0 <= neighbor[1] < data.width
+                or data[neighbor].terrain == -1
+            ):
                 continue
             if neighbor not in close_list:
                 x = abs(data[neighbor].pos[0] - end[0])
@@ -144,7 +148,7 @@ def naivePermutations(npc_data, map_data):
 
     for permutation in permutations(papers):
         distance = npc_data[start][base].dist
-        for begin, finish in zip((base,)+permutation, permutation):
+        for begin, finish in zip((base,) + permutation, permutation):
             distance += npc_data[begin][finish].dist
         if distance < mini:
             mini, order = distance, permutation
@@ -162,12 +166,13 @@ def heldKarp(npc_data, map_data):
             comb = frozenset(comb)
             for dest in papers - comb:
                 routes = []
-                if comb == frozenset():         # case for base starting
-                    cost = npc_data[base][dest].dist + \
-                           npc_data[start][base].dist
+                if comb == frozenset():  # case for base starting
+                    cost = (
+                        npc_data[base][dest].dist + npc_data[start][base].dist
+                    )
                     nodes[dest, frozenset()] = cost, base
                 else:
-                    for begin in comb:          # single val from set
+                    for begin in comb:  # single val from set
                         sub_comb = comb - frozenset({begin})
                         prev_cost = nodes[begin, sub_comb][0]
                         cost = npc_data[begin][dest].dist + prev_cost
@@ -227,9 +232,9 @@ def printSolution(paths):
         path {list} -- each value is a list of tuples with ordered coordinates
     """
     for i, path in enumerate(paths, 1):
-        print(f"\n{i}: ", end=' ')
+        print(f"\n{i}: ", end=" ")
         for step in path:
-            print(step, end=' ')
+            print(step, end=" ")
     print()
 
 
@@ -244,7 +249,7 @@ def getMoves(query):
         list -- list of tuples that represent moving options
     """
     moveType = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    if query[0] == 'D':
+    if query[0] == "D":
         moveType.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
 
     return moveType
@@ -264,12 +269,11 @@ def findPaths(map_data, moves):
     """
     papers, base, start = map_data.entities.values()
 
-    ent_data = {p: dijkstra(
-        copy.deepcopy(map_data), p, moves) for p in papers}
-    ent_data.update({start: aStar(
-        copy.deepcopy(map_data), start, base, moves)})
-    ent_data.update({base: dijkstra(
-        copy.deepcopy(map_data), base, moves)})
+    ent_data = {p: dijkstra(copy.deepcopy(map_data), p, moves) for p in papers}
+    ent_data.update(
+        {start: aStar(copy.deepcopy(map_data), start, base, moves)}
+    )
+    ent_data.update({base: dijkstra(copy.deepcopy(map_data), base, moves)})
 
     return ent_data
 
@@ -286,7 +290,7 @@ def main():
         return
 
     # ? no need to check every step, remake inc
-    map_data = Map('evo_' + file_name)
+    map_data = Map("evo_" + file_name)
     if not map_data:
         print("Invalid map!")
         return
