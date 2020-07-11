@@ -2,6 +2,7 @@ import copy
 import heapq
 from itertools import combinations, permutations
 from sys import maxsize
+from typing import Any, Dict, FrozenSet, List, Tuple
 
 from simulation import evolution
 
@@ -10,19 +11,38 @@ class PositionError(Exception):
     pass
 
 
+class Node:
+    def __init__(self, pos, terrain):
+        self.pos = pos  # type: Tuple[int, int]
+        self.terrain = terrain  # type: int
+        self.parent = -1  # type: Tuple[int, int]
+        self.dist = maxsize  # type: int
+        self.g = maxsize  # type: int
+        self.h = maxsize  # type: int
+
+    def __lt__(self, other):
+        if self.dist != other.dist:
+            return self.dist < other.dist
+        return self.h < other.h
+
+
 class Map:
-    def __init__(self, file_name):
-        self.file_name = None
-        self.nodes = None
-        self.entities = None
-        self.__width = None
-        self.__height = None
+    def __init__(self, file_name) -> None:
+        self.file_name = ""  # type: str
+        self.__width = 0  # type: int
+        self.__height = 0  # type: int
+        self.nodes = {}  # type: Dict[Tuple[int, int], Node]
+        self.entities = {}  # type: Dict[str, Any]
 
         self.__loadMap(file_name)
 
-    def __loadMap(self, file_name):
-        entities = {"papers": [], "base": None, "start": None}
-        nodes = {}
+    def __loadMap(self, file_name) -> None:
+        entities = {
+            "papers": [],
+            "base": None,
+            "start": None,
+        }  # type: Dict[str, Any]
+        nodes = {}  # type: Dict[Tuple[int, int], Node]
         with open("maps/" + file_name) as f:
             for i, line in enumerate(f):
                 for j, col in enumerate(line.split()):
@@ -48,7 +68,7 @@ class Map:
         assert len(pos) == 2, "Coordinate must have two values."
         if not (0 <= pos[0] < self.height) or not (0 <= pos[1] < self.width):
             raise PositionError(str(pos))
-        return self.nodes[pos]  # self.nodes.get(pos)
+        return self.nodes[pos]
 
     @property
     def width(self):
@@ -59,23 +79,11 @@ class Map:
         return self.__height
 
 
-class Node:
-    def __init__(self, pos, terrain):
-        self.pos = pos
-        self.terrain = terrain
-        self.parent = -1  # node position from which we got to this node
-        self.dist = maxsize  # distance from starting node to current node
-        self.g = maxsize
-        self.h = maxsize
+def dijkstra(
+    data: Map, start: Tuple[int, int], moves: List[Tuple[int, int]]
+) -> Map:
 
-    def __lt__(self, other):
-        if self.dist != other.dist:
-            return self.dist < other.dist
-        return self.h < other.h
-
-
-def dijkstra(data, start, moves):
-    heap = []
+    heap = []  # type: List[Node]
     data[start].dist = 0
     heapq.heappush(heap, data[start])
 
@@ -100,8 +108,14 @@ def dijkstra(data, start, moves):
     return data
 
 
-def aStar(data, start, end, moves):
-    open_list = []
+def aStar(
+    data: Map,
+    start: Tuple[int, int],
+    end: Tuple[int, int],
+    moves: List[Tuple[int, int]],
+) -> Map:
+
+    open_list = []  # type: List[Node]
     close_list = []
     data[start].g = 0
     heapq.heappush(open_list, data[start])
@@ -140,7 +154,10 @@ def aStar(data, start, end, moves):
     return data
 
 
-def naivePermutations(npc_data, map_data):
+def naivePermutations(
+    npc_data: Dict[Tuple[int, int], Map], map_data: Map
+) -> Tuple[List[Any], int]:
+
     # ! danger of dependency on the order of entities
     papers, base, start = map_data.entities.values()
 
@@ -153,31 +170,36 @@ def naivePermutations(npc_data, map_data):
         if distance < mini:
             mini, order = distance, permutation
 
-    return (start, base) + order, mini
+    return [(start, base) + order], mini
 
 
-def heldKarp(npc_data, map_data):
+def heldKarp(
+    npc_data: Dict[Tuple[int, int], Map], map_data: Map
+) -> Tuple[List[Any], int]:
+
     papers, base, start = map_data.entities.values()
     papers = frozenset(papers)
-    nodes = {}
+    nodes = (
+        {}
+    )  # type: Dict[ Tuple[Tuple[int, int], FrozenSet[int]] , Tuple[int, Tuple[int, int]]]
 
     for row in range(len(papers)):
         for comb in combinations(papers, row):
-            comb = frozenset(comb)
-            for dest in papers - comb:
+            combSet = frozenset(comb)
+            for dest in papers - combSet:
                 routes = []
-                if comb == frozenset():  # case for base starting
+                if combSet == frozenset():  # case for base starting
                     cost = (
                         npc_data[base][dest].dist + npc_data[start][base].dist
                     )
                     nodes[dest, frozenset()] = cost, base
                 else:
-                    for begin in comb:  # single val from set
-                        sub_comb = comb - frozenset({begin})
+                    for begin in combSet:  # single val from set
+                        sub_comb = combSet - frozenset({begin})
                         prev_cost = nodes[begin, sub_comb][0]
                         cost = npc_data[begin][dest].dist + prev_cost
                         routes.append((cost, begin))
-                    nodes[dest, comb] = min(routes)
+                    nodes[dest, combSet] = min(routes)
 
     com = []
     for i, node in enumerate(reversed(dict(nodes))):
@@ -199,8 +221,9 @@ def heldKarp(npc_data, map_data):
     return path[::-1], cost
 
 
-def getPaths(npc_data, order):
-    # ToDo
+def getPaths(
+    npc_data: Dict[Tuple[int, int], Map], order: List[Any]
+) -> List[List[Tuple[int, int]]]:
     """Gets paths between entities by ...
 
     Arguments:
@@ -211,9 +234,13 @@ def getPaths(npc_data, order):
     Returns:
         list -- each value is a list of tuples with ordered coordinates
     """
+
     paths = []
 
-    for begin, finish in zip(order, order[1:]):
+    # have to annotate order because of Map.entities annotation
+    for begin, finish in zip(
+        order, order[1:]
+    ):  # type: Tuple[int, int], Tuple[int, int]
         path = []
         while finish != begin:
             path.append(finish)
@@ -223,7 +250,7 @@ def getPaths(npc_data, order):
     return paths
 
 
-def printSolution(paths):
+def printSolution(paths: List[List[Tuple[int, int]]]) -> None:
     """Prints the order of paths between entities. Each line starts with
     order number followed by order of tuple coordinates that represent
     the movement progression from start to destination entity.
@@ -231,6 +258,7 @@ def printSolution(paths):
     Arguments:
         path {list} -- each value is a list of tuples with ordered coordinates
     """
+
     for i, path in enumerate(paths, 1):
         print(f"\n{i}: ", end=" ")
         for step in path:
@@ -238,7 +266,7 @@ def printSolution(paths):
     print()
 
 
-def getMoves(query):
+def getMoves(query: str) -> List[Tuple[int, int]]:
     """Gets moving possibilities. Default moving type is Manhattan,
     if queries first character is 'D', it will be extended by Diagonal moves
 
@@ -248,6 +276,7 @@ def getMoves(query):
     Returns:
         list -- list of tuples that represent moving options
     """
+
     moveType = [(-1, 0), (1, 0), (0, -1), (0, 1)]
     if query[0] == "D":
         moveType.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
@@ -255,7 +284,9 @@ def getMoves(query):
     return moveType
 
 
-def findPaths(map_data, moves):
+def findPaths(
+    map_data: Map, moves: List[Tuple[int, int]]
+) -> Dict[Tuple[int, int], Map]:
     """Find all the shortest possible paths between all entities
     papers, base, start in the map using Dijkstra and A* algorithms.
 
@@ -267,6 +298,7 @@ def findPaths(map_data, moves):
         dict -- dictionary that describes shortest paths between all entities
                 with keys being tuple coordinates. Access via dict[start][dest]
     """
+
     papers, base, start = map_data.entities.values()
 
     ent_data = {p: dijkstra(copy.deepcopy(map_data), p, moves) for p in papers}
@@ -278,7 +310,8 @@ def findPaths(map_data, moves):
     return ent_data
 
 
-def main():
+def main() -> None:
+
     query = "amap.txt"  # SAME AS: "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
     attempts = 3
     papers = 3
@@ -314,11 +347,12 @@ def main():
 
 main()
 
-# ToDo: Differentiate 2 cases in loadMap at evolution.py and make 2 functions
-# ToDo: Add function annotations
+# ToDo: Validation checks (__loadMap, coordinate checkings for example)
 # ToDo: Finish docstrings, current ones need corrections as theyre not clear
+
+# ToDo: Create tests
+
+# ToDo: Differentiate 2 cases in loadMap at evolution.py and make 2 functions
 # ToDo: Held Karr (Add Shortest subset combo)
 # ToDo: Pathfinding (C: Climbing, S: Swamp)
-# ToDo: Validation checks (__loadMap, coordinate checkings for example)
-# ToDo: Create tests
 # ToDo: Add Rule based system in the end (each paper is one fact)

@@ -2,9 +2,10 @@ import copy
 import random
 import re
 import time
+from typing import Any, Dict, Generator, List, Tuple
 
 
-def create(query, attempts, papers):
+def create(query: str, attempts: int, papers: int) -> str:
     """Creates a map using evolutionary algorithm and saves it to a file.
 
     Arguments:
@@ -19,13 +20,13 @@ def create(query, attempts, papers):
     map_walls, file_name = loadWalls(query)
     if not map_walls:
         print("Invalid query!")
-        return
+        return ""
 
     # INITIALIZATION: Add terrain
     map_terrained = evolutionize(map_walls, attempts, True)
     if not map_terrained:
         print("Evolution algorithm could not find a solution, try again.")
-        return False
+        return ""
 
     # INITIALIZATION: Add entities at random places
     entities = generateEntities(map_terrained, papers)
@@ -34,7 +35,9 @@ def create(query, attempts, papers):
     return file_name
 
 
-def entityGenerator(map_terrained):
+def entityGenerator(
+    map_terrained: List[List[int]],
+) -> Generator[Tuple[int, int], None, None]:
     """Generator of positions that are used for entities.
 
     Arguments:
@@ -43,6 +46,8 @@ def entityGenerator(map_terrained):
     Yields:
         tuple -- (x, y) coordinate of generated position
     """
+    # Generator[yield_type, send_type, return_type]
+    # what is SendType and ReturnType?
     reserved = set()
     for i, row in enumerate(map_terrained):
         for j, x in enumerate(row):
@@ -57,7 +62,9 @@ def entityGenerator(map_terrained):
             yield (x, y)
 
 
-def generateEntities(map_terrained, amount):
+def generateEntities(
+    map_terrained: List[List[int]], amount: int
+) -> Dict[str, Any]:
     """Generates position for papers, base and starting location.
 
     Arguments:
@@ -76,7 +83,9 @@ def generateEntities(map_terrained, amount):
     return {"papers": papers, "base": base, "start": start}
 
 
-def saveMap(map_terrained, file_name, entities):
+def saveMap(
+    map_terrained: List[List[int]], file_name: str, entities: Dict[str, Any]
+) -> None:
     """Saves terrained map into text file named file_name
     with entities being surrounded with certain brackets.
 
@@ -99,7 +108,7 @@ def saveMap(map_terrained, file_name, entities):
             f.write("\n")
 
 
-def loadWalls(query):
+def loadWalls(query: str) -> Tuple[List[List[int]], str]:
     """ Loads or creates a map of walls that is represented by 2D list.
     Query can consist of either a file name, or command that creates a new map.
     These two examples will have the same outcome:
@@ -118,16 +127,16 @@ def loadWalls(query):
 
     # Load from string
     if re.search(r"[0-9]+x[0-9]+(\ \([0-9]+,[0-9]+\))+$", query):
-        query = query.split()
-        ROWS, COLS = map(int, query[0].split("x"))
-        walls = {eval(coordinate) for coordinate in query[1:]}
+        query_list = query.split()
+        ROWS, COLS = map(int, query_list[0].split("x"))
+        walls = {eval(coordinate) for coordinate in query_list[1:]}
         map_walls = [[0] * COLS for _ in range(ROWS)]
 
         for wall in walls:
             try:
                 map_walls[wall[0]][wall[1]] = 1
             except IndexError:
-                map_walls = None
+                map_walls = []
 
         file_name = "commanded.txt"
 
@@ -141,7 +150,7 @@ def loadWalls(query):
             for line in f:
                 line = line.rstrip()
                 if prev_length != len(line):
-                    map_walls = None
+                    map_walls = []
                     break
                 prev_length = len(line)
                 map_walls.append([int(column) for column in line])
@@ -151,7 +160,7 @@ def loadWalls(query):
     return map_walls, file_name
 
 
-def listToTuple(map_list):
+def listToTuple(map_list: List[List[int]]) -> Dict[Tuple[int, int], int]:
     """Converts a 2D map list to dictionary of tuples as keys with x, y coors
     """
     map_tuple = {}
@@ -162,7 +171,9 @@ def listToTuple(map_list):
     return map_tuple
 
 
-def evolutionize(map_list, attempts, print_stats):
+def evolutionize(
+    map_list: List[List[int]], attempts: int, print_stats: bool
+) -> List[List[int]]:
     """Runs evolutionary algorithm for map with walls to fill it with terrain.
 
     Arguments:
@@ -233,7 +244,7 @@ def evolutionize(map_list, attempts, print_stats):
             )
 
             # next generation creating, 1 iteration for 2 populations
-            children = []
+            children = []  # type: List[Any]
             for i in range(0, CHROMOSOMES, 2):
 
                 # pick 2 better chromosomes out of 4
@@ -304,7 +315,11 @@ def evolutionize(map_list, attempts, print_stats):
     return map_filled if found_solution else []
 
 
-def rakeMap(chromosome, map_tuple, SHAPE):
+def rakeMap(
+    chromosome: List[int],
+    map_tuple: Dict[Tuple[int, int], int],
+    SHAPE: Tuple[int, int],
+) -> Tuple[int, List[List[int]]]:
     """Attempts to fill the map terrain with chromosome that is defined
     by the order of instructions known as genes.
 
@@ -321,6 +336,8 @@ def rakeMap(chromosome, map_tuple, SHAPE):
     HALF_PERIMETER = SHAPE[0] + SHAPE[1]
     UNRAKED = 0
 
+    parents = {}  # type: Dict[Any, Any]
+    pos = 0  # type: Any
     order = 1
     for gene in chromosome:
 
@@ -357,17 +374,17 @@ def rakeMap(chromosome, map_tuple, SHAPE):
                         L = pos[0], pos[1] - 1
                         R_inbound = R[1] < COLS
                         L_inbound = L[1] >= 0
-                        R = R_inbound and map_tuple[R] == UNRAKED
-                        L = L_inbound and map_tuple[L] == UNRAKED
+                        R_free = R_inbound and map_tuple[R] == UNRAKED
+                        L_free = L_inbound and map_tuple[L] == UNRAKED
 
-                        if R and L:
+                        if R_free and L_free:
                             move = (0, 1) if gene > 0 else (0, -1)
-                        elif R:
+                        elif R_free:
                             move = 0, 1
-                        elif L:
+                        elif L_free:
                             move = 0, -1
                         elif R_inbound and L_inbound:
-                            move = False
+                            move = 0, 0
                         else:
                             break  # reached end of the map so we can leave
 
@@ -376,22 +393,22 @@ def rakeMap(chromosome, map_tuple, SHAPE):
                         U = pos[0] - 1, pos[1]
                         D_inbound = D[0] < ROWS
                         U_inbound = U[0] >= 0
-                        D = D_inbound and map_tuple[D] == UNRAKED
-                        U = U_inbound and map_tuple[U] == UNRAKED
+                        D_free = D_inbound and map_tuple[D] == UNRAKED
+                        U_free = U_inbound and map_tuple[U] == UNRAKED
 
-                        if D and U:
+                        if D_free and U_free:
                             move = (1, 0) if gene > 0 else (-1, 0)
-                        elif D:
+                        elif D_free:
                             move = 1, 0
-                        elif U:
+                        elif U_free:
                             move = -1, 0
                         elif D_inbound and U_inbound:
-                            move = False
+                            move = 0, 0
                         else:
                             break
 
                     # if we cant change direction, remove the path
-                    if not move:
+                    if not any(move):
                         order -= 1
                         while parents[pos] != 0:
                             map_tuple[pos] = 0
@@ -406,7 +423,7 @@ def rakeMap(chromosome, map_tuple, SHAPE):
 
             order += 1
 
-    fills = []
+    fills = []  # type: List[List[int]]
     unraked = 0
     j = -1
     for i, fill in enumerate(map_tuple.values()):
