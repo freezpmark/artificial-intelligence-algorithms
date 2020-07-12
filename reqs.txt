@@ -22,7 +22,6 @@ pylint==2.5.3
 pyparsing==2.4.7
 pytest==5.4.3
 regex==2020.6.8
--e git+https://github.com/FrizzLi/Python-learning@1e50681b5c72dc154f82b639da686455a738a8b9#egg=simulation
 six==1.15.0
 toml==0.10.1
 typed-ast==1.4.1
