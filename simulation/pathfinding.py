@@ -170,7 +170,7 @@ def naivePermutations(
         if distance < mini:
             mini, order = distance, permutation
 
-    return [(start, base) + order], mini
+    return list((start, base) + order), mini
 
 
 def heldKarp(
@@ -179,9 +179,10 @@ def heldKarp(
 
     papers, base, start = map_data.entities.values()
     papers = frozenset(papers)
-    nodes = (
-        {}
-    )  # type: Dict[ Tuple[Tuple[int, int], FrozenSet[int]] , Tuple[int, Tuple[int, int]]]
+
+    key = Tuple[Tuple[int, int], FrozenSet[int]]
+    value = Tuple[int, Tuple[int, int]]
+    nodes = {}  # type: Dict[key, value]
 
     for row in range(len(papers)):
         for comb in combinations(papers, row):
@@ -349,7 +350,11 @@ def main() -> None:
 
 main()
 
-# ToDo: Update docstrings, annotations, namings, simplify algs, fix warnings
+# ToDo: Update:
+#   docstrings
+#   annotations
+#   namings
+#   simplify algs
 
 # ToDo: Create tests
 
