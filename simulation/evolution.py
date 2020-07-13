@@ -5,36 +5,6 @@ import time
 from typing import Any, Dict, Generator, List, Tuple
 
 
-def create(query: str, attempts: int, papers: int) -> str:
-    """Creates a map using evolutionary algorithm and saves it to a file.
-
-    Arguments:
-        query {string} -- file name to load, or command that creates a new map
-                          These two examples will have the same outcome:
-                            query -- "file_name.txt" < "001\\n000\\n010"
-                            query -- "3x3 (0,2) (2,1)"
-        attempts {int} -- number of times evolutionary algorithm runs
-        papers {int} -- amount of papers we wish to create
-    """
-    # DECLARATION: Load or create walls
-    map_walls, file_name = loadWalls(query)
-    if not map_walls:
-        print("Invalid query!")
-        return ""
-
-    # INITIALIZATION: Add terrain
-    map_terrained = evolutionize(map_walls, attempts, True)
-    if not map_terrained:
-        print("Evolution algorithm could not find a solution, try again.")
-        return ""
-
-    # INITIALIZATION: Add entities at random places
-    entities = generateEntities(map_terrained, papers)
-    saveMap(map_terrained, "evo_" + file_name, entities)
-
-    return file_name
-
-
 def entityGenerator(
     map_terrained: List[List[int]],
 ) -> Generator[Tuple[int, int], None, None]:
@@ -63,7 +33,7 @@ def entityGenerator(
 
 
 def generateEntities(
-    map_terrained: List[List[int]], amount: int
+    map_terrained: List[List[str]], amount: int
 ) -> Dict[str, Any]:
     """Generates position for papers, base and starting location.
 
@@ -74,90 +44,17 @@ def generateEntities(
     Returns:
         dict -- has 3 entity keys as names with coordinate values
     """
-    gen = entityGenerator(map_terrained)
+    if not map_terrained:
+        return {}
+
+    map_walled_int = [list(map(int, i)) for i in map_terrained]
+    gen = entityGenerator(map_walled_int)
 
     papers = [next(gen) for _ in range(amount)]
     base = next(gen)
     start = next(gen)
 
     return {"papers": papers, "base": base, "start": start}
-
-
-def saveMap(
-    map_terrained: List[List[int]], file_name: str, entities: Dict[str, Any]
-) -> None:
-    """Saves terrained map into text file named file_name
-    with entities being surrounded with certain brackets.
-
-    Arguments:
-        map_terrained {list} -- 2D map list of terrained map
-        file_name {str} -- name of the text file we're saving the map into
-        entities {dict} -- has 3 entity keys as names with coordinate values
-    """
-    with open("maps/" + file_name, "w") as f:
-        for i, row in enumerate(map_terrained):
-            for j in range(len(row)):
-                string = str(map_terrained[i][j])
-                if (i, j) in entities["papers"]:
-                    string = "(" + string + ")"
-                elif (i, j) == entities["base"]:
-                    string = "[" + string + "]"
-                elif (i, j) == entities["start"]:
-                    string = "{" + string + "}"
-                f.write("{:^5}".format(string))
-            f.write("\n")
-
-
-def loadWalls(query: str) -> Tuple[List[List[int]], str]:
-    """ Loads or creates a map of walls that is represented by 2D list.
-    Query can consist of either a file name, or command that creates a new map.
-    These two examples will have the same outcome:
-
-    query -- "file_name.txt" < "001\\n000\\n010"\n
-    query -- "3x3 (0,2) (2,1)"
-
-    Arguments:
-        query {string} -- file name to load, or command that creates a new map
-
-    Returns:
-        list -- 2D map list with walls that are represented by number 1
-        str -- file name into which we will save finished map
-    """
-    map_walls = []
-
-    # Load from string
-    if re.search(r"[0-9]+x[0-9]+(\ \([0-9]+,[0-9]+\))+$", query):
-        query_list = query.split()
-        ROWS, COLS = map(int, query_list[0].split("x"))
-        walls = {eval(coordinate) for coordinate in query_list[1:]}
-        map_walls = [[0] * COLS for _ in range(ROWS)]
-
-        for wall in walls:
-            try:
-                map_walls[wall[0]][wall[1]] = 1
-            except IndexError:
-                map_walls = []
-
-        file_name = "commanded.txt"
-
-    # Load from file
-    elif re.search(r"\.txt", query):
-        with open("maps/" + query) as f:
-            line = f.readline().rstrip()
-            map_walls.append([int(column) for column in line])
-            prev_length = len(line)
-
-            for line in f:
-                line = line.rstrip()
-                if prev_length != len(line):
-                    map_walls = []
-                    break
-                prev_length = len(line)
-                map_walls.append([int(column) for column in line])
-
-        file_name = query
-
-    return map_walls, file_name
 
 
 def listToTuple(map_list: List[List[int]]) -> Dict[Tuple[int, int], int]:
@@ -184,6 +81,9 @@ def evolutionize(
     Returns:
         list -- 2D map list that is filled by the most amount of terrain
     """
+    if not map_list:
+        return map_list
+
     found_solution = False
     attempt_number = 1
     while not found_solution and attempt_number <= attempts:
@@ -435,3 +335,124 @@ def rakeMap(
         fills[j].append(fill)
 
     return unraked, fills
+
+
+def saveMap(
+    map_terrained: List[List[str]],
+    file_name: str,
+    entities: Dict[str, Any] = {},
+) -> None:
+
+    """Saves terrained map into text file named file_name
+    with entities being surrounded with certain brackets.
+
+    Arguments:
+        map_terrained {list} -- 2D map list of terrained map
+        file_name {str} -- name of the text file we're saving the map into
+        entities {dict} -- has 3 entity keys as names with coordinate values
+    """
+    # specify what is happening.. walls/terrain/objects? to create file suffix
+    spacing = "{:^5}" if entities else "{:^3}"
+
+    with open("simulation/maps/" + file_name, "w") as f:
+        for i, row in enumerate(map_terrained):
+            for j in range(len(row)):
+                string = str(map_terrained[i][j])
+                if entities:
+                    if (i, j) in entities["papers"]:
+                        string = "(" + string + ")"
+                    elif (i, j) == entities["base"]:
+                        string = "[" + string + "]"
+                    elif (i, j) == entities["start"]:
+                        string = "{" + string + "}"
+                f.write(spacing.format(string))
+            f.write("\n")
+
+
+def loadMap(file_name: str) -> List[List[str]]:
+    map_walls = []
+
+    try:
+        with open("simulation/maps/" + file_name) as f:
+            line = f.readline().rstrip()
+            map_walls.append(line.split())
+            prev_length = len(line)
+
+            for line in f:
+                line = line.rstrip()
+                if prev_length != len(line):
+                    map_walls = []
+                    break
+                prev_length = len(line)
+                map_walls.append(line.split())
+    except FileNotFoundError:
+        map_walls = []
+
+    return map_walls
+
+
+def create_walls(file_name: str, query: str) -> bool:
+    # 2D map list with walls that are represented by number 1
+    map_walls = []
+
+    if re.search(r"[0-9]+x[0-9]+(\ \([0-9]+,[0-9]+\))+$", query):
+        query_list = query.split()
+        ROWS, COLS = map(int, query_list[0].split("x"))
+        walls = {eval(coordinate) for coordinate in query_list[1:]}
+        map_walls = [["0"] * COLS for _ in range(ROWS)]
+
+        for wall in walls:
+            try:
+                map_walls[wall[0]][wall[1]] = "1"
+            except IndexError:
+                map_walls = []
+
+    if map_walls:
+        saveMap(map_walls, file_name + "_wal.txt")
+        return True
+    return False
+
+
+def create_terrain(file_name: str, attempts: int) -> bool:
+    # Creates a map using evolutionary algorithm and saves it to a file.
+
+    map_walled = loadMap(file_name + "_wal.txt")
+
+    map_walled_int = [[int(i) for i in subarray] for subarray in map_walled]
+    map_walled_int = evolutionize(map_walled_int, attempts, True)
+    map_terrained = [[str(i) for i in subarray] for subarray in map_walled_int]
+
+    if map_terrained:
+        saveMap(map_terrained, file_name + "_ter.txt")
+        return True
+    return False
+
+
+def create_objects(file_name: str, papers: int) -> bool:
+    map_terrained = loadMap(file_name + "_ter.txt")
+    entities = generateEntities(map_terrained, papers)
+
+    if map_terrained:
+        saveMap(map_terrained, file_name + "_obj.txt", entities)
+        return True
+    return False
+
+
+if __name__ == "__main__":
+
+    query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
+    file_name = "default"
+    attempts = 3  # number of max times evolutionary algorithm runs
+    papers = 3  # amount of papers we wish to create
+
+    if not create_walls(file_name, query):
+        print("Invalid query!")
+        exit()
+
+    if not create_terrain(file_name, attempts):
+        print("Invalid file name!")
+        exit()
+
+    if not create_objects(file_name, papers):
+        print("Invalid file name!")
+        exit()

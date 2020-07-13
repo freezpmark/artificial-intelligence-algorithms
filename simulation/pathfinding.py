@@ -43,7 +43,7 @@ class Map:
             "start": None,
         }  # type: Dict[str, Any]
         nodes = {}  # type: Dict[Tuple[int, int], Node]
-        with open("maps/" + file_name) as f:
+        with open("simulation/maps/" + file_name) as f:
             for i, line in enumerate(f):
                 for j, col in enumerate(line.split()):
                     if col[0] == "(":
@@ -266,7 +266,7 @@ def printSolution(paths: List[List[Tuple[int, int]]]) -> None:
     print()
 
 
-def getMoves(query: str) -> List[Tuple[int, int]]:
+def getMoves(movement: str) -> List[Tuple[int, int]]:
     """Gets moving possibilities. Default moving type is Manhattan,
     if queries first character is 'D', it will be extended by Diagonal moves
 
@@ -278,7 +278,7 @@ def getMoves(query: str) -> List[Tuple[int, int]]:
     """
 
     moveType = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    if query[0] == "D":
+    if movement[0] == "D":
         moveType.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
 
     return moveType
@@ -312,23 +312,25 @@ def findPaths(
 
 def main() -> None:
 
-    query = "amap.txt"  # SAME AS: "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
+    query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
+    file_name = "default"
     attempts = 3
     papers = 3
-    moving_direction = "M"
-    # ToDo: terrain_type = "C"
 
-    file_name = evolution.create(query, attempts, papers)
-    if not file_name:
-        return
+    # options to save/run+save, > > statements.. walls > terr
+    evolution.create_walls(file_name, query)
+    evolution.create_terrain(file_name, attempts)
+    evolution.create_objects(file_name, papers)
 
-    # ? no need to check every step, remake inc
-    map_data = Map("evo_" + file_name)
+    map_data = Map(file_name + "_obj.txt")
     if not map_data:
         print("Invalid map!")
         return
 
-    moves = getMoves(moving_direction)
+    movement = "M"
+    # ToDo: terrain_type = "C"
+
+    moves = getMoves(movement)
     npc_data = findPaths(map_data, moves)
 
     print("Starting Naive solution")
@@ -347,12 +349,10 @@ def main() -> None:
 
 main()
 
-# ToDo: Validation checks (__loadMap, coordinate checkings for example)
-# ToDo: Finish docstrings, current ones need corrections as theyre not clear
+# ToDo: Update docstrings, annotations, namings, simplify algs, fix warnings
 
 # ToDo: Create tests
 
-# ToDo: Differentiate 2 cases in loadMap at evolution.py and make 2 functions
 # ToDo: Held Karr (Add Shortest subset combo)
 # ToDo: Pathfinding (C: Climbing, S: Swamp)
 # ToDo: Add Rule based system in the end (each paper is one fact)
