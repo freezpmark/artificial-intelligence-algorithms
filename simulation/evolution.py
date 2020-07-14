@@ -57,15 +57,7 @@ def generateEntities(
     return {"papers": papers, "base": base, "start": start}
 
 
-def listToTuple(map_list: List[List[int]]) -> Dict[Tuple[int, int], int]:
-    """Converts a 2D map list to dictionary of tuples as keys with x, y coors
-    """
-    map_tuple = {}
-    for i, row in enumerate(map_list):
-        for j in range(len(row)):
-            map_tuple[i, j] = map_list[i][j]
-
-    return map_tuple
+# for above 2 functions, make a better solution maybe?
 
 
 def evolutionize(
@@ -87,8 +79,11 @@ def evolutionize(
     found_solution = False
     attempt_number = 1
     while not found_solution and attempt_number <= attempts:
-        map_tuple = listToTuple(map_list)
-        map_tuple = {key: -map_tuple[key] for key in map_tuple.keys()}
+        map_tuple = {
+            (i, j): -col
+            for i, row in enumerate(map_list)
+            for j, col in enumerate(row)
+        }
 
         SHAPE = len(map_list), len(map_list[0])
         ROCKS = sum(val != 0 for val in map_tuple.values())
@@ -391,7 +386,7 @@ def loadMap(file_name: str) -> List[List[str]]:
     return map_walls
 
 
-def create_walls(file_name: str, query: str) -> bool:
+def create_walls(new_file_name: str, query: str) -> str:
     # 2D map list with walls that are represented by number 1
     map_walls = []
 
@@ -408,51 +403,61 @@ def create_walls(file_name: str, query: str) -> bool:
                 map_walls = []
 
     if map_walls:
-        saveMap(map_walls, file_name + "_wal.txt")
-        return True
-    return False
+        new_file_name = new_file_name + "_wal"
+        saveMap(map_walls, new_file_name + ".txt")
+        return new_file_name
+    return ""
 
 
-def create_terrain(file_name: str, attempts: int) -> bool:
+def create_terrain(file_name: str, new_file_name: str, attempts: int) -> str:
     # Creates a map using evolutionary algorithm and saves it to a file.
 
-    map_walled = loadMap(file_name + "_wal.txt")
+    if not file_name:
+        file_name = new_file_name
+    map_walled = loadMap(file_name + ".txt")
 
     map_walled_int = [[int(i) for i in subarray] for subarray in map_walled]
     map_walled_int = evolutionize(map_walled_int, attempts, True)
     map_terrained = [[str(i) for i in subarray] for subarray in map_walled_int]
 
     if map_terrained:
-        saveMap(map_terrained, file_name + "_ter.txt")
-        return True
-    return False
+        if new_file_name.endswith("_wal"):
+            new_file_name = new_file_name[:-4]
+        new_file_name += "_ter"
+        saveMap(map_terrained, new_file_name + ".txt")
+        return new_file_name
+    return ""
 
 
-def create_objects(file_name: str, papers: int) -> bool:
-    map_terrained = loadMap(file_name + "_ter.txt")
-    entities = generateEntities(map_terrained, papers)
+def create_objects(file_name: str, new_file_name: str, papers: int) -> str:
+
+    if not file_name:
+        file_name = new_file_name
+    map_terrained = loadMap(file_name + ".txt")
+
+    entities = generateEntities(
+        map_terrained, papers
+    )  # return map with objects (entities)
 
     if map_terrained:
-        saveMap(map_terrained, file_name + "_obj.txt", entities)
-        return True
-    return False
+        if new_file_name.endswith("_ter"):
+            new_file_name = new_file_name[:-4]
+        new_file_name += "_obj"
+        saveMap(
+            map_terrained, new_file_name + ".txt", entities
+        )  # remove entities argument
+        return new_file_name
+    return ""
 
 
 if __name__ == "__main__":
 
     query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
-    file_name = "default"
+    file_name = ""
+    new_file_name = "default"
     attempts = 3  # number of max times evolutionary algorithm runs
     papers = 3  # amount of papers we wish to create
 
-    if not create_walls(file_name, query):
-        print("Invalid query!")
-        exit()
-
-    if not create_terrain(file_name, attempts):
-        print("Invalid file name!")
-        exit()
-
-    if not create_objects(file_name, papers):
-        print("Invalid file name!")
-        exit()
+    new_file_name = create_walls(new_file_name, query)
+    new_file_name = create_terrain(file_name, new_file_name, attempts)
+    new_file_name = create_objects(file_name, new_file_name, papers)

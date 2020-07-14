@@ -4,7 +4,7 @@ from itertools import combinations, permutations
 from sys import maxsize
 from typing import Any, Dict, FrozenSet, List, Tuple
 
-from simulation import evolution
+from simulation import evolution as evo
 
 
 class PositionError(Exception):
@@ -43,19 +43,22 @@ class Map:
             "start": None,
         }  # type: Dict[str, Any]
         nodes = {}  # type: Dict[Tuple[int, int], Node]
-        with open("simulation/maps/" + file_name) as f:
-            for i, line in enumerate(f):
-                for j, col in enumerate(line.split()):
-                    if col[0] == "(":
-                        entities["papers"].append((i, j))
-                        col = col[1:-1]
-                    elif col[0] == "[":
-                        entities["base"] = (i, j)
-                        col = col[1:-1]
-                    elif col[0] == "{":
-                        entities["start"] = (i, j)
-                        col = col[1:-1]
-                    nodes[i, j] = Node((i, j), int(col))
+        try:
+            with open("simulation/maps/" + file_name + ".txt") as f:
+                for i, line in enumerate(f):
+                    for j, col in enumerate(line.split()):
+                        if col[0] == "(":
+                            entities["papers"].append((i, j))
+                            col = col[1:-1]
+                        elif col[0] == "[":
+                            entities["base"] = (i, j)
+                            col = col[1:-1]
+                        elif col[0] == "{":
+                            entities["start"] = (i, j)
+                            col = col[1:-1]
+                        nodes[i, j] = Node((i, j), int(col))
+        except FileNotFoundError:
+            pass
 
         if all(entities.values()) and len(entities["papers"]) > 1:
             self.file_name = file_name
@@ -313,24 +316,35 @@ def findPaths(
 
 def main() -> None:
 
-    query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
-    file_name = "default"
+    if False:
+        query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
+        file_name = ""
+
+    if True:
+        query = ""
+        file_name = "FUNGUJ_ter"
+
+    new_file_name = "FILE"
     attempts = 3
     papers = 3
 
-    # options to save/run+save, > > statements.. walls > terr
-    evolution.create_walls(file_name, query)
-    evolution.create_terrain(file_name, attempts)
-    evolution.create_objects(file_name, papers)
+    # create <query> -> <newfilename>           ( -> ... is optional)
+    # load <filename> -> <newfilename>          ( -> ... is optional)
+    # use better parser..?
 
-    map_data = Map(file_name + "_obj.txt")
-    if not map_data:
+    if query:
+        new_file_name = evo.create_walls(new_file_name, query)
+    if file_name.endswith("_wal"):
+        new_file_name = evo.create_terrain(file_name, new_file_name, attempts)
+    if file_name.endswith("_ter"):
+        new_file_name = evo.create_objects(file_name, new_file_name, papers)
+
+    map_data = Map(new_file_name)
+    if not map_data.file_name:
         print("Invalid map!")
         return
 
     movement = "M"
-    # ToDo: terrain_type = "C"
-
     moves = getMoves(movement)
     npc_data = findPaths(map_data, moves)
 
@@ -350,11 +364,11 @@ def main() -> None:
 
 main()
 
-# ToDo: Update:
-#   docstrings
-#   annotations
-#   namings
-#   simplify algs
+#   REFERSH:
+#       simplify algs
+#       docstrings
+#       annotations
+#       namings
 
 # ToDo: Create tests
 
