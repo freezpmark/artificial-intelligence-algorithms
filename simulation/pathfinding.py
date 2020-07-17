@@ -1,10 +1,8 @@
-import copy
 import heapq
 from itertools import combinations, permutations
 from sys import maxsize
 from typing import Any, Dict, FrozenSet, List, Tuple
-
-from simulation import evolution as evo
+from copy import deepcopy
 
 
 class PositionError(Exception):
@@ -32,38 +30,37 @@ class Map:
         self.__width = 0  # type: int
         self.__height = 0  # type: int
         self.nodes = {}  # type: Dict[Tuple[int, int], Node]
-        self.entities = {}  # type: Dict[str, Any]
+        self.properties = {}  # type: Dict[str, Any]
 
         self.__loadMap(file_name)
 
     def __loadMap(self, file_name) -> None:
-        entities = {
-            "papers": [],
-            "base": None,
-            "start": None,
+        properties = {
+            "points": [],
+            "base": 0,
+            "start": 0,
         }  # type: Dict[str, Any]
         nodes = {}  # type: Dict[Tuple[int, int], Node]
         try:
-            with open("simulation/maps/" + file_name + ".txt") as f:
+            with open("simulation/maps/" + file_name + "_pro.txt") as f:
                 for i, line in enumerate(f):
                     for j, col in enumerate(line.split()):
-                        if col[0] == "(":
-                            entities["papers"].append((i, j))
-                            col = col[1:-1]
-                        elif col[0] == "[":
-                            entities["base"] = (i, j)
-                            col = col[1:-1]
-                        elif col[0] == "{":
-                            entities["start"] = (i, j)
+                        if col[0] in "([{":
+                            if col[0] == "(":
+                                properties["points"].append((i, j))
+                            elif col[0] == "[":
+                                properties["base"] = (i, j)
+                            elif col[0] == "{":
+                                properties["start"] = (i, j)
                             col = col[1:-1]
                         nodes[i, j] = Node((i, j), int(col))
         except FileNotFoundError:
             pass
 
-        if all(entities.values()) and len(entities["papers"]) > 1:
+        if all(properties.values()) and len(properties["points"]) > 1:
             self.file_name = file_name
             self.nodes = nodes
-            self.entities = entities
+            self.properties = properties
             self.__height = i + 1
             self.__width = j + 1
 
@@ -82,9 +79,38 @@ class Map:
         return self.__height
 
 
+def unpassable(neighbor: Tuple[int, int], data: Map):
+    """Checks whether neighbor position is walled or out of map.
+
+    Args:
+        neighbor (Tuple[int, int]): position on which movement was applied
+        data (Map): contains information about the map
+
+    Returns:
+        bool: passability
+    """
+
+    return (
+        not 0 <= neighbor[0] < data.height
+        or not 0 <= neighbor[1] < data.width
+        or data[neighbor].terrain == -1
+    )
+
+
 def dijkstra(
     data: Map, start: Tuple[int, int], moves: List[Tuple[int, int]]
 ) -> Map:
+    """Finds and saves the shortest path to all destinations from the start.
+
+    Args:
+        data (Map): contains information about the map
+        start (Tuple[int, int]): starting position
+        moves (List[Tuple[int, int]]): tuples of movement options
+
+    Returns:
+        Map: contains distances between starting position and any destination
+            Access via Map[starting][destination].dist
+    """
 
     heap = []  # type: List[Node]
     data[start].dist = 0
@@ -92,21 +118,14 @@ def dijkstra(
 
     while heap:
         node = heapq.heappop(heap)
-        for adjacent in moves:
-            neighbor = (node.pos[0] + adjacent[0], node.pos[1] + adjacent[1])
+        for move in moves:
+            neighbor = node.pos[0] + move[0], node.pos[1] + move[1]
 
-            # avoid out of bounds or walls
-            if (
-                not 0 <= neighbor[0] < data.height
-                or not 0 <= neighbor[1] < data.width
-                or data[neighbor].terrain == -1
-            ):
-                continue
-
-            if data[neighbor].dist > node.dist + data[neighbor].terrain:
-                data[neighbor].dist = node.dist + data[neighbor].terrain
-                data[neighbor].parent = node.pos
-                heapq.heappush(heap, data[neighbor])
+            if not unpassable(neighbor, data):
+                if data[neighbor].dist > node.dist + data[neighbor].terrain:
+                    data[neighbor].dist = node.dist + data[neighbor].terrain
+                    data[neighbor].parent = node.pos
+                    heapq.heappush(heap, data[neighbor])
 
     return data
 
@@ -114,9 +133,21 @@ def dijkstra(
 def aStar(
     data: Map,
     start: Tuple[int, int],
-    end: Tuple[int, int],
+    dest: Tuple[int, int],
     moves: List[Tuple[int, int]],
 ) -> Map:
+    """Finds and saves the shortest path to destination from the start.
+
+    Args:
+        data (Map): contains information about the map
+        start (Tuple[int, int]): starting position
+        dest (Tuple[int, int]): ending position
+        moves (List[Tuple[int, int]]): tuples of movement options
+
+    Returns:
+        Map: contains distances between starting position and destination
+            Access via Map[starting][destination].dist
+    """
 
     open_list = []  # type: List[Node]
     close_list = []
@@ -125,24 +156,17 @@ def aStar(
 
     while open_list:
         node = heapq.heappop(open_list)
-        close_list.append(node.pos)
-
-        if node.pos == end:
+        if node.pos == dest:
             break
 
-        for adjacent in moves:
-            neighbor = (node.pos[0] + adjacent[0], node.pos[1] + adjacent[1])
+        close_list.append(node.pos)
 
-            # avoid out of bounds or walls
-            if (
-                not 0 <= neighbor[0] < data.height
-                or not 0 <= neighbor[1] < data.width
-                or data[neighbor].terrain == -1
-            ):
-                continue
-            if neighbor not in close_list:
-                x = abs(data[neighbor].pos[0] - end[0])
-                y = abs(data[neighbor].pos[1] - end[1])
+        for move in moves:
+            neighbor = node.pos[0] + move[0], node.pos[1] + move[1]
+
+            if not unpassable(neighbor, data) and neighbor not in close_list:
+                x = abs(data[neighbor].pos[0] - dest[0])
+                y = abs(data[neighbor].pos[1] - dest[1])
                 h = x + y
                 g = node.g + data[neighbor].terrain
                 f = g + h
@@ -158,18 +182,26 @@ def aStar(
 
 
 def naivePermutations(
-    npc_data: Dict[Tuple[int, int], Map], map_data: Map
+    pro_data: Dict[Tuple[int, int], Map], map_data: Map
 ) -> Tuple[List[Any], int]:
+    """[summary]
 
-    # ! danger of dependency on the order of entities
-    papers, base, start = map_data.entities.values()
+    Args:
+        pro_data (Dict[Tuple[int, int], Map]): [description]
+        map_data (Map): [description]
+
+    Returns:
+        Tuple[List[Any], int]: [description]
+    """
+
+    points, base, start = map_data.properties.values()
 
     mini = maxsize
 
-    for permutation in permutations(papers):
-        distance = npc_data[start][base].dist
+    for permutation in permutations(points):
+        distance = pro_data[start][base].dist
         for begin, finish in zip((base,) + permutation, permutation):
-            distance += npc_data[begin][finish].dist
+            distance += pro_data[begin][finish].dist
         if distance < mini:
             mini, order = distance, permutation
 
@@ -180,17 +212,17 @@ def heldKarp(
     npc_data: Dict[Tuple[int, int], Map], map_data: Map
 ) -> Tuple[List[Any], int]:
 
-    papers, base, start = map_data.entities.values()
-    papers = frozenset(papers)
+    points, base, start = map_data.properties.values()
+    points = frozenset(points)
 
     key = Tuple[Tuple[int, int], FrozenSet[int]]
     value = Tuple[int, Tuple[int, int]]
     nodes = {}  # type: Dict[key, value]
 
-    for row in range(len(papers)):
-        for comb in combinations(papers, row):
+    for row in range(len(points)):
+        for comb in combinations(points, row):
             combSet = frozenset(comb)
-            for dest in papers - combSet:
+            for dest in points - combSet:
                 routes = []
                 if combSet == frozenset():  # case for base starting
                     cost = (
@@ -207,19 +239,19 @@ def heldKarp(
 
     com = []
     for i, node in enumerate(reversed(dict(nodes))):
-        if i < len(papers):
+        if i < len(points):
             com.append((nodes.pop(node), node[0]))
-        elif i == len(papers):
+        elif i == len(points):
             val, step = min(com)
-            papers -= {step}
+            points -= {step}
             path = [step]
             cost, next_step = val
             break
 
-    for _ in papers:
+    for _ in points:
         path.append(next_step)
-        papers -= {next_step}
-        next_step = nodes[next_step, papers][1]
+        points -= {next_step}
+        next_step = nodes[next_step, points][1]
     path.extend([base, start])
 
     return path[::-1], cost
@@ -228,10 +260,10 @@ def heldKarp(
 def getPaths(
     npc_data: Dict[Tuple[int, int], Map], order: List[Any]
 ) -> List[List[Tuple[int, int]]]:
-    """Gets paths between entities by ...
+    """Gets paths between properties by ...
 
     Arguments:
-        npc_data {dict} -- describes shortest paths between all entities
+        npc_data {dict} -- describes shortest paths between all properties
                 with keys being tuple coordinates. Access via dict[start][dest]
         order {tuple} --
 
@@ -241,7 +273,7 @@ def getPaths(
 
     paths = []
 
-    # have to annotate order because of Map.entities annotation
+    # have to annotate order because of Map.properties annotation
     for begin, finish in zip(
         order, order[1:]
     ):  # type: Tuple[int, int], Tuple[int, int]
@@ -255,9 +287,9 @@ def getPaths(
 
 
 def printSolution(paths: List[List[Tuple[int, int]]]) -> None:
-    """Prints the order of paths between entities. Each line starts with
+    """Prints the order of paths between properties. Each line starts with
     order number followed by order of tuple coordinates that represent
-    the movement progression from start to destination entity.
+    the movement progression from start to destination properties.
 
     Arguments:
         path {list} -- each value is a list of tuples with ordered coordinates
@@ -270,105 +302,80 @@ def printSolution(paths: List[List[Tuple[int, int]]]) -> None:
     print()
 
 
-def getMoves(movement: str) -> List[Tuple[int, int]]:
-    """Gets moving possibilities. Default moving type is Manhattan,
-    if queries first character is 'D', it will be extended by Diagonal moves
+def getMoves(query: str) -> List[Tuple[int, int]]:
+    """Gets moving directions. Manhattan type is set by default, to extend
+    it with diagonal moves use "D" as first character in the query.
 
-    Arguments:
-        query {string} -- string used for selection via first character
+    Args:
+        query (str): first character determines the type of movement directions
 
     Returns:
-        list -- list of tuples that represent moving options
+        List[Tuple[int, int]]: tuples of x, y coordinate movement options
     """
 
-    moveType = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    if movement[0] == "D":
-        moveType.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
+    moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    if query[0] == "D":
+        moves.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
 
-    return moveType
+    return moves
 
 
 def findPaths(
     map_data: Map, moves: List[Tuple[int, int]]
 ) -> Dict[Tuple[int, int], Map]:
-    """Find all the shortest possible paths between all entities
-    papers, base, start in the map using Dijkstra and A* algorithms.
+    """Finds the shortest possible paths between all properties:
+    points, base, start in the map using Dijkstra and A* algorithms.
 
-    Arguments:
-        map_data {Map} -- describes the whole map and its entities
-        moves {list} -- list of tuples that represent moving options
+    Args:
+        map_data (Map): contains information about the map
+        moves (List[Tuple[int, int]]): tuples of x, y coordinate movement opts
 
     Returns:
-        dict -- dictionary that describes shortest paths between all entities
-                with keys being tuple coordinates. Access via dict[start][dest]
+        Dict[Tuple[int, int], Map]: contains distances between all properties
+            Access via Dict[starting][destination].dist
     """
 
-    papers, base, start = map_data.entities.values()
+    points, base, start = map_data.properties.values()
 
-    ent_data = {p: dijkstra(copy.deepcopy(map_data), p, moves) for p in papers}
-    ent_data.update(
-        {start: aStar(copy.deepcopy(map_data), start, base, moves)}
-    )
-    ent_data.update({base: dijkstra(copy.deepcopy(map_data), base, moves)})
+    pro_data = {p: dijkstra(deepcopy(map_data), p, moves) for p in points}
+    pro_data.update({start: aStar(deepcopy(map_data), start, base, moves)})
+    pro_data.update({base: dijkstra(deepcopy(map_data), base, moves)})
 
-    return ent_data
+    return pro_data
 
 
 def main() -> None:
-
-    if False:
-        query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
-        file_name = ""
-
-    if True:
-        query = ""
-        file_name = "FUNGUJ_ter"
-
-    new_file_name = "FILE"
-    attempts = 3
-    papers = 3
-
-    # create <query> -> <newfilename>           ( -> ... is optional)
-    # load <filename> -> <newfilename>          ( -> ... is optional)
-    # use better parser..?
-
-    if query:
-        new_file_name = evo.create_walls(new_file_name, query)
-    if file_name.endswith("_wal"):
-        new_file_name = evo.create_terrain(file_name, new_file_name, attempts)
-    if file_name.endswith("_ter"):
-        new_file_name = evo.create_objects(file_name, new_file_name, papers)
-
-    map_data = Map(new_file_name)
-    if not map_data.file_name:
-        print("Invalid map!")
-        return
-
+    file_name = "queried"
     movement = "M"
+
     moves = getMoves(movement)
-    npc_data = findPaths(map_data, moves)
+    map_data = Map(file_name)
+    pro_data = findPaths(map_data, moves)
 
     print("Starting Naive solution")
-    order, dist = naivePermutations(npc_data, map_data)
-    path = getPaths(npc_data, order)
+    order, dist = naivePermutations(pro_data, map_data)
+    path = getPaths(pro_data, order)
     printSolution(path)
     print("Cost: " + str(dist))
-
     # alot faster solution
     print("Starting Held Karp")
-    order2, dist2 = heldKarp(npc_data, map_data)
-    path2 = getPaths(npc_data, order2)
+    order2, dist2 = heldKarp(pro_data, map_data)
+    path2 = getPaths(pro_data, order2)
     printSolution(path2)
     print("Cost: " + str(dist2))
 
 
 main()
 
+# create <query> -> <newfilename>           ( -> ... is optional)
+# load <filename> -> <newfilename>          ( -> ... is optional)
+# use better parser..?
+
 #   REFERSH:
 #       simplify algs
-#       docstrings
 #       annotations
 #       namings
+#       docstrings
 
 # ToDo: Create tests
 
