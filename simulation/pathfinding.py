@@ -1,8 +1,8 @@
 import heapq
+from copy import deepcopy
 from itertools import combinations, permutations
 from sys import maxsize
 from typing import Any, Dict, FrozenSet, List, Tuple
-from copy import deepcopy
 
 
 class PositionError(Exception):
@@ -184,18 +184,19 @@ def aStar(
 def naivePermutations(
     pro_data: Dict[Tuple[int, int], Map], map_data: Map
 ) -> Tuple[List[Any], int]:
-    """[summary]
+    """Computes the distance between all possible combinations of properties in
+    order to find the shortest paths.
 
     Args:
-        pro_data (Dict[Tuple[int, int], Map]): [description]
-        map_data (Map): [description]
+        pro_data (Dict[Tuple[int, int], Map]): contains distances between
+            all properties. Access via Dict[starting][destination].dist
+        map_data (Map): contains information about the map
 
     Returns:
-        Tuple[List[Any], int]: [description]
+        Tuple[List[Any], int]: (order of properties' coordinates, distance)
     """
 
     points, base, start = map_data.properties.values()
-
     mini = maxsize
 
     for permutation in permutations(points):
@@ -209,8 +210,19 @@ def naivePermutations(
 
 
 def heldKarp(
-    npc_data: Dict[Tuple[int, int], Map], map_data: Map
+    pro_data: Dict[Tuple[int, int], Map], map_data: Map
 ) -> Tuple[List[Any], int]:
+    """Finds the shortest combination of paths between properties
+    using Held Karp's algorithm.
+
+    Args:
+        pro_data (Dict[Tuple[int, int], Map]): contains distances between
+            all properties. Access via Dict[starting][destination].dist
+        map_data (Map): contains information about the map
+
+    Returns:
+        Tuple[List[Any], int]: (order of properties' coordinates, distance)
+    """
 
     points, base, start = map_data.properties.values()
     points = frozenset(points)
@@ -226,14 +238,14 @@ def heldKarp(
                 routes = []
                 if combSet == frozenset():  # case for base starting
                     cost = (
-                        npc_data[base][dest].dist + npc_data[start][base].dist
+                        pro_data[base][dest].dist + pro_data[start][base].dist
                     )
                     nodes[dest, frozenset()] = cost, base
                 else:
                     for begin in combSet:  # single val from set
                         sub_comb = combSet - frozenset({begin})
                         prev_cost = nodes[begin, sub_comb][0]
-                        cost = npc_data[begin][dest].dist + prev_cost
+                        cost = pro_data[begin][dest].dist + prev_cost
                         routes.append((cost, begin))
                     nodes[dest, combSet] = min(routes)
 
@@ -258,48 +270,47 @@ def heldKarp(
 
 
 def getPaths(
-    npc_data: Dict[Tuple[int, int], Map], order: List[Any]
+    pro_data: Dict[Tuple[int, int], Map], order: List[Any]
 ) -> List[List[Tuple[int, int]]]:
-    """Gets paths between properties by ...
+    """Gets paths from ordered coordinates of properties via parent attribute.
 
-    Arguments:
-        npc_data {dict} -- describes shortest paths between all properties
-                with keys being tuple coordinates. Access via dict[start][dest]
-        order {tuple} --
+    Args:
+        pro_data (Dict[Tuple[int, int], Map]): contains distances between
+            all properties. Access via Dict[starting][destination].dist
+        order (List[Any]): order of properties' coordinates
 
     Returns:
-        list -- each value is a list of tuples with ordered coordinates
+        List[List[Tuple[int, int]]]: Lists of paths between ordered properties
     """
 
     paths = []
-
-    # have to annotate order because of Map.properties annotation
-    for begin, finish in zip(
-        order, order[1:]
-    ):  # type: Tuple[int, int], Tuple[int, int]
+    for begin, finish in zip(order, order[1:]):
         path = []
         while finish != begin:
             path.append(finish)
-            finish = npc_data[begin][finish].parent
+            finish = pro_data[begin][finish].parent
         paths.append(path[::-1])
 
     return paths
 
 
-def printSolution(paths: List[List[Tuple[int, int]]]) -> None:
+def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
     """Prints the order of paths between properties. Each line starts with
     order number followed by order of tuple coordinates that represent
-    the movement progression from start to destination properties.
+    the movement progression from start to destination property.
 
-    Arguments:
-        path {list} -- each value is a list of tuples with ordered coordinates
+    Args:
+        paths (List[List[Tuple[int, int]]]): Lists of paths between
+            ordered properties
+        distance (int): total distance of solution
     """
 
     for i, path in enumerate(paths, 1):
-        print(f"\n{i}: ", end=" ")
+        print(f"{i}: ", end=" ")
         for step in path:
             print(step, end=" ")
-    print()
+        print()
+    print("Cost: " + str(distance) + "\n")
 
 
 def getMoves(query: str) -> List[Tuple[int, int]]:
@@ -355,14 +366,12 @@ def main() -> None:
     print("Starting Naive solution")
     order, dist = naivePermutations(pro_data, map_data)
     path = getPaths(pro_data, order)
-    printSolution(path)
-    print("Cost: " + str(dist))
-    # alot faster solution
+    printSolution(path, dist)
+
     print("Starting Held Karp")
     order2, dist2 = heldKarp(pro_data, map_data)
     path2 = getPaths(pro_data, order2)
-    printSolution(path2)
-    print("Cost: " + str(dist2))
+    printSolution(path2, dist2)
 
 
 main()
@@ -371,14 +380,7 @@ main()
 # load <filename> -> <newfilename>          ( -> ... is optional)
 # use better parser..?
 
-#   REFERSH:
-#       simplify algs
-#       annotations
-#       namings
-#       docstrings
-
 # ToDo: Create tests
-
-# ToDo: Held Karr (Add Shortest subset combo)
+# ToDo: Held Karp (Add Shortest subset combo)
 # ToDo: Pathfinding (C: Climbing, S: Swamp)
 # ToDo: Add Rule based system in the end (each paper is one fact)
