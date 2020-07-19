@@ -31,7 +31,6 @@ class Map:
         self.__height = 0  # type: int
         self.nodes = {}  # type: Dict[Tuple[int, int], Node]
         self.properties = {}  # type: Dict[str, Any]
-
         self.__loadMap(file_name)
 
     def __loadMap(self, file_name) -> None:
@@ -79,6 +78,24 @@ class Map:
         return self.__height
 
 
+def getMoves(query: str) -> List[Tuple[int, int]]:
+    """Gets moving directions. Manhattan type is set by default, to extend
+    it with diagonal moves use "D" as first character in the query.
+
+    Args:
+        query (str): first character determines the type of movement directions
+
+    Returns:
+        List[Tuple[int, int]]: tuples of x, y coordinate movement options
+    """
+
+    moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    if query[0] == "D":
+        moves.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
+
+    return moves
+
+
 def unpassable(neighbor: Tuple[int, int], data: Map):
     """Checks whether neighbor position is walled or out of map.
 
@@ -120,7 +137,6 @@ def dijkstra(
         node = heapq.heappop(heap)
         for move in moves:
             neighbor = node.pos[0] + move[0], node.pos[1] + move[1]
-
             if not unpassable(neighbor, data):
                 if data[neighbor].dist > node.dist + data[neighbor].terrain:
                     data[neighbor].dist = node.dist + data[neighbor].terrain
@@ -160,10 +176,8 @@ def aStar(
             break
 
         close_list.append(node.pos)
-
         for move in moves:
             neighbor = node.pos[0] + move[0], node.pos[1] + move[1]
-
             if not unpassable(neighbor, data) and neighbor not in close_list:
                 x = abs(data[neighbor].pos[0] - dest[0])
                 y = abs(data[neighbor].pos[1] - dest[1])
@@ -269,10 +283,34 @@ def heldKarp(
     return path[::-1], cost
 
 
+def findShortestDistances(
+    map_data: Map, moves: List[Tuple[int, int]]
+) -> Dict[Tuple[int, int], Map]:
+    """Finds the shortest distances between all properties:
+    points, base, start in the map using Dijkstra and A* algorithms.
+
+    Args:
+        map_data (Map): contains information about the map
+        moves (List[Tuple[int, int]]): tuples of x, y coordinate movement opts
+
+    Returns:
+        Dict[Tuple[int, int], Map]: contains distances between all properties
+            Access via Dict[starting][destination].dist
+    """
+
+    points, base, start = map_data.properties.values()
+
+    pro_data = {p: dijkstra(deepcopy(map_data), p, moves) for p in points}
+    pro_data.update({start: aStar(deepcopy(map_data), start, base, moves)})
+    pro_data.update({base: dijkstra(deepcopy(map_data), base, moves)})
+
+    return pro_data
+
+
 def getPaths(
     pro_data: Dict[Tuple[int, int], Map], order: List[Any]
 ) -> List[List[Tuple[int, int]]]:
-    """Gets paths from ordered coordinates of properties via parent attribute.
+    """Gets routes from ordered coordinates of properties via parent attribute.
 
     Args:
         pro_data (Dict[Tuple[int, int], Map]): contains distances between
@@ -310,49 +348,8 @@ def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
         for step in path:
             print(step, end=" ")
         print()
+
     print("Cost: " + str(distance) + "\n")
-
-
-def getMoves(query: str) -> List[Tuple[int, int]]:
-    """Gets moving directions. Manhattan type is set by default, to extend
-    it with diagonal moves use "D" as first character in the query.
-
-    Args:
-        query (str): first character determines the type of movement directions
-
-    Returns:
-        List[Tuple[int, int]]: tuples of x, y coordinate movement options
-    """
-
-    moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    if query[0] == "D":
-        moves.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
-
-    return moves
-
-
-def findPaths(
-    map_data: Map, moves: List[Tuple[int, int]]
-) -> Dict[Tuple[int, int], Map]:
-    """Finds the shortest possible paths between all properties:
-    points, base, start in the map using Dijkstra and A* algorithms.
-
-    Args:
-        map_data (Map): contains information about the map
-        moves (List[Tuple[int, int]]): tuples of x, y coordinate movement opts
-
-    Returns:
-        Dict[Tuple[int, int], Map]: contains distances between all properties
-            Access via Dict[starting][destination].dist
-    """
-
-    points, base, start = map_data.properties.values()
-
-    pro_data = {p: dijkstra(deepcopy(map_data), p, moves) for p in points}
-    pro_data.update({start: aStar(deepcopy(map_data), start, base, moves)})
-    pro_data.update({base: dijkstra(deepcopy(map_data), base, moves)})
-
-    return pro_data
 
 
 def main() -> None:
@@ -361,7 +358,7 @@ def main() -> None:
 
     moves = getMoves(movement)
     map_data = Map(file_name)
-    pro_data = findPaths(map_data, moves)
+    pro_data = findShortestDistances(map_data, moves)
 
     print("Starting Naive solution")
     order, dist = naivePermutations(pro_data, map_data)

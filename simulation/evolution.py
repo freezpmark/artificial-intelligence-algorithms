@@ -5,60 +5,6 @@ import time
 from typing import Any, Dict, Generator, List, Tuple
 
 
-def generateProperties(
-    map_list: List[List[str]], points_amount: int
-) -> List[List[str]]:
-    """Adds properties to terrained map.
-
-    Args:
-        map_list (List[List[str]]): 2D map array of terrained map
-            that is going to be propertied
-        points_amount (int): amount of destination points to visit
-
-    Returns:
-        List[List[str]]: 2D propertied map array
-    """
-
-    def positionGenerator(
-        map_terrained: List[List[str]],
-    ) -> Generator[Tuple[int, int], None, None]:
-        """Generator of free positions that
-        are going to be used for properties.
-
-        Args:
-            map_terrained (List[List[str]]): 2D map array
-                that is going to be propertied
-
-        Yields:
-            Generator[Tuple[int, int], None, None]: coordinate of free position
-        """
-
-        reserved = set()
-        for i, row in enumerate(map_terrained):
-            for j, col in enumerate(row):
-                if col == "-1":
-                    reserved.add((i, j))
-
-        while True:
-            x = random.randint(0, len(map_terrained) - 1)
-            y = random.randint(0, len(map_terrained[0]) - 1)
-            if (x, y) not in reserved:
-                reserved.add((x, y))
-                yield (x, y)
-
-    pos = positionGenerator(map_list)
-
-    first = next(pos)
-    start = next(pos)
-    map_list[first[0]][first[1]] = "[" + map_list[first[0]][first[1]] + "]"
-    map_list[start[0]][start[1]] = "{" + map_list[start[0]][start[1]] + "}"
-    for _ in range(points_amount):
-        point = next(pos)
-        map_list[point[0]][point[1]] = "(" + map_list[point[0]][point[1]] + ")"
-
-    return map_list
-
-
 def evolutionize(
     map_list: List[List[int]], max_runs: int, print_stats: bool
 ) -> List[List[int]]:
@@ -78,6 +24,7 @@ def evolutionize(
 
     found_solution = False
     attempt_number = 1
+
     while not found_solution and attempt_number <= max_runs:
         map_tuple = {
             (i, j): -col
@@ -98,10 +45,10 @@ def evolutionize(
 
         start_time = time.time()
         gen_times = []
+        population = []
         prev_max = 0
 
         # generating chromosomes for one population/generation
-        population = []
         genes = random.sample(range(1, genes_amount), genes_amount - 1)
         for _ in range(CHROMOSOMES):
             random.shuffle(genes)
@@ -109,7 +56,7 @@ def evolutionize(
             population.append(chromosome)
 
         # loop of generations
-        mut_rate = MIN_MUT_RATE
+        mu_rate = MIN_MUT_RATE
         for i in range(GENERATIONS):
             generation_time = time.time()
 
@@ -127,16 +74,14 @@ def evolutionize(
             if prev_max < fit_max:
                 print(f"Generation: {i+1},", end="\t")
                 print(f"Raked: {fit_max} (out of {to_rake_amount})", end="\t")
-                print(f"Mutation rate: {round(mut_rate, 2)}")
+                print(f"Mutation rate: {round(mu_rate, 2)}")
             if fit_max == to_rake_amount:
                 found_solution = True
                 gen_times.append(time.time() - generation_time)
                 break
 
             # increase mutation rate each generation to prevent local maximums
-            mut_rate = (
-                mut_rate if mut_rate >= MAX_MUT_RATE else mut_rate + 0.01
-            )
+            mu_rate = mu_rate if mu_rate >= MAX_MUT_RATE else mu_rate + 0.01
 
             # next generation creating, 1 iteration for 2 populations
             children = []  # type: List[Any]
@@ -158,7 +103,7 @@ def evolutionize(
                 if random.random() < CROSS_RATE:
                     for c in range(2):
                         for g in range(genes_amount - 1):
-                            if random.random() < mut_rate:
+                            if random.random() < mu_rate:
 
                                 # search for gene with mut_num number
                                 mut_num = random.randint(1, genes_amount)
@@ -181,7 +126,6 @@ def evolutionize(
                 children[0][i] = population[best_index][i]
 
             population = children
-
             prev_max = fit_max
             gen_times.append(time.time() - generation_time)
 
@@ -229,10 +173,10 @@ def rakeMap(
     rows, cols = shape[0], shape[1]
     half_perimeter = shape[0] + shape[1]
     UNRAKED = 0
-
     parents = {}  # type: Dict[Any, Any]
     pos = 0  # type: Any
     order = 1
+
     for gene in chromosome:
 
         # get starting position and movement direction
@@ -320,6 +264,7 @@ def rakeMap(
     filled_map = []  # type: List[List[int]]
     unraked_amount = 0
     row_number = -1
+
     for i, fill in enumerate(map_tuple.values()):
         if fill == UNRAKED:
             unraked_amount += 1
@@ -329,6 +274,60 @@ def rakeMap(
         filled_map[row_number].append(fill)
 
     return unraked_amount, filled_map
+
+
+def generateProperties(
+    map_list: List[List[str]], points_amount: int
+) -> List[List[str]]:
+    """Adds properties to terrained map.
+
+    Args:
+        map_list (List[List[str]]): 2D map array of terrained map
+            that is going to be propertied
+        points_amount (int): amount of destination points to visit
+
+    Returns:
+        List[List[str]]: 2D propertied map array
+    """
+
+    def positionGenerator(
+        map_terrained: List[List[str]],
+    ) -> Generator[Tuple[int, int], None, None]:
+        """Generator of free positions that
+        are going to be used for properties.
+
+        Args:
+            map_terrained (List[List[str]]): 2D map array
+                that is going to be propertied
+
+        Yields:
+            Generator[Tuple[int, int], None, None]: coordinate of free position
+        """
+
+        reserved = set()
+        for i, row in enumerate(map_terrained):
+            for j, col in enumerate(row):
+                if col == "-1":
+                    reserved.add((i, j))
+
+        while True:
+            x = random.randint(0, len(map_terrained) - 1)
+            y = random.randint(0, len(map_terrained[0]) - 1)
+            if (x, y) not in reserved:
+                reserved.add((x, y))
+                yield (x, y)
+
+    pos = positionGenerator(map_list)
+
+    first = next(pos)
+    start = next(pos)
+    map_list[first[0]][first[1]] = "[" + map_list[first[0]][first[1]] + "]"
+    map_list[start[0]][start[1]] = "{" + map_list[start[0]][start[1]] + "}"
+    for _ in range(points_amount):
+        point = next(pos)
+        map_list[point[0]][point[1]] = "(" + map_list[point[0]][point[1]] + ")"
+
+    return map_list
 
 
 def saveMap(
