@@ -1,5 +1,5 @@
 import heapq
-from copy import deepcopy
+from copy import deepcopy as dcopy
 from itertools import combinations, permutations
 from sys import maxsize
 from typing import Any, Dict, FrozenSet, List, Tuple
@@ -115,7 +115,10 @@ def unpassable(neighbor: Tuple[int, int], data: Map):
 
 
 def dijkstra(
-    data: Map, start: Tuple[int, int], moves: List[Tuple[int, int]]
+    data: Map,
+    start: Tuple[int, int],
+    moves: List[Tuple[int, int]],
+    climb: bool,
 ) -> Map:
     """Finds and saves the shortest path to all destinations from the start.
 
@@ -123,6 +126,8 @@ def dijkstra(
         data (Map): contains information about the map
         start (Tuple[int, int]): starting position
         moves (List[Tuple[int, int]]): tuples of movement options
+        climb (bool): climbing distance approach, distance to next position
+            is measured as abs(current terrain number - next terrain number)
 
     Returns:
         Map: contains distances between starting position and any destination
@@ -138,8 +143,13 @@ def dijkstra(
         for move in moves:
             neighbor = node.pos[0] + move[0], node.pos[1] + move[1]
             if not unpassable(neighbor, data):
-                if data[neighbor].dist > node.dist + data[neighbor].terrain:
-                    data[neighbor].dist = node.dist + data[neighbor].terrain
+                if climb:
+                    dist_next = abs(node.terrain - data[neighbor].terrain + 1)
+                else:
+                    dist_next = data[neighbor].terrain
+
+                if data[neighbor].dist > node.dist + dist_next:
+                    data[neighbor].dist = node.dist + dist_next
                     data[neighbor].parent = node.pos
                     heapq.heappush(heap, data[neighbor])
 
@@ -151,6 +161,7 @@ def aStar(
     start: Tuple[int, int],
     dest: Tuple[int, int],
     moves: List[Tuple[int, int]],
+    climb: bool,
 ) -> Map:
     """Finds and saves the shortest path to destination from the start.
 
@@ -159,6 +170,8 @@ def aStar(
         start (Tuple[int, int]): starting position
         dest (Tuple[int, int]): ending position
         moves (List[Tuple[int, int]]): tuples of movement options
+        climb (bool): climbing distance approach, distance to next position
+            is measured as abs(current terrain number - next terrain number)
 
     Returns:
         Map: contains distances between starting position and destination
@@ -182,7 +195,10 @@ def aStar(
                 x = abs(data[neighbor].pos[0] - dest[0])
                 y = abs(data[neighbor].pos[1] - dest[1])
                 h = x + y
-                g = node.g + data[neighbor].terrain
+                if climb:
+                    g = node.g + abs(node.terrain - data[neighbor].terrain + 1)
+                else:
+                    g = node.g + data[neighbor].terrain
                 f = g + h
                 if f < data[neighbor].dist:
                     data[neighbor].g = g
@@ -242,6 +258,9 @@ def heldKarp(
     points, base, start = tuple(pro_data.values())[0].properties.values()
     points = frozenset(points)
     subset_size = subset_size if subset_size else len(points)
+    # if subset_size is None or subset_size > len(points):
+    # subset_size = subset_size if subset_size is None or
+    # subset_size > len(points) else len(points)
 
     key = Tuple[Tuple[int, int], FrozenSet[int]]
     value = Tuple[int, Tuple[int, int]]
@@ -289,7 +308,7 @@ def heldKarp(
 
 
 def findShortestDistances(
-    map_data: Map, moves: List[Tuple[int, int]]
+    map_data: Map, moves: List[Tuple[int, int]], climb: bool
 ) -> Dict[Tuple[int, int], Map]:
     """Finds the shortest distances between all properties:
     points, base, start in the map using Dijkstra and A* algorithms.
@@ -297,6 +316,8 @@ def findShortestDistances(
     Args:
         map_data (Map): contains information about the map
         moves (List[Tuple[int, int]]): tuples of x, y coordinate movement opts
+        climb (bool): climbing distance approach, distance to next position
+            is measured as abs(current terrain number - next terrain number)
 
     Returns:
         Dict[Tuple[int, int], Map]: contains distances between all properties
@@ -305,9 +326,9 @@ def findShortestDistances(
 
     points, base, start = map_data.properties.values()
 
-    pro_data = {p: dijkstra(deepcopy(map_data), p, moves) for p in points}
-    pro_data.update({start: aStar(deepcopy(map_data), start, base, moves)})
-    pro_data.update({base: dijkstra(deepcopy(map_data), base, moves)})
+    pro_data = {p: dijkstra(dcopy(map_data), p, moves, climb) for p in points}
+    pro_data.update({start: aStar(dcopy(map_data), start, base, moves, climb)})
+    pro_data.update({base: dijkstra(dcopy(map_data), base, moves, climb)})
 
     return pro_data
 
@@ -360,14 +381,15 @@ def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
 def main() -> None:
     file_name = "queried"
     movement = "M"  # N - Manhattan, D - Diagonal
-    terraining = "S"  # S - swamp, C - climbing
-    algorithm = "HK"  # HK - Held Kapr, NP - Naive Permutations
-    subset_size = 0
+    climb = True  # S - swamp, C - climbing
+    algorithm = "HK"  # HK - Held Karp, NP - Naive Permutations
+    subset_size = False
 
     moves = getMoves(movement)
     map_data = Map(file_name)
-    pro_data = findShortestDistances(map_data, moves)
+    pro_data = findShortestDistances(map_data, moves, climb)
 
+    # if subset_size is False
     # Todo subset_size > 2 and subset_size <= points
     #    return
 
@@ -384,8 +406,7 @@ def main() -> None:
 
 main()
 
-# ToDo: Held Karp (Add Shortest subset combo)
-# ToDo: Pathfinding (C: Climbing, S: Swamp)
+# ToDo: main function, subset_sizes osetrenie
 # ToDo: Create tests
 # ToDo: Add Rule based system in the end (each paper is one fact)
 
