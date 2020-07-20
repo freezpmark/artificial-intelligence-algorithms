@@ -196,7 +196,7 @@ def aStar(
 
 
 def naivePermutations(
-    pro_data: Dict[Tuple[int, int], Map], map_data: Map
+    pro_data: Dict[Tuple[int, int], Map], subset_size: int = 0
 ) -> Tuple[List[Any], int]:
     """Computes the distance between all possible combinations of properties in
     order to find the shortest paths.
@@ -204,16 +204,17 @@ def naivePermutations(
     Args:
         pro_data (Dict[Tuple[int, int], Map]): contains distances between
             all properties. Access via Dict[starting][destination].dist
-        map_data (Map): contains information about the map
+        subset_size (int, optional): defines how many points we want to visit
 
     Returns:
         Tuple[List[Any], int]: (order of properties' coordinates, distance)
     """
 
-    points, base, start = map_data.properties.values()
+    points, base, start = tuple(pro_data.values())[0].properties.values()
+    subset_size = subset_size if subset_size else len(points)
     mini = maxsize
 
-    for permutation in permutations(points):
+    for permutation in permutations(points, subset_size):
         distance = pro_data[start][base].dist
         for begin, finish in zip((base,) + permutation, permutation):
             distance += pro_data[begin][finish].dist
@@ -224,7 +225,7 @@ def naivePermutations(
 
 
 def heldKarp(
-    pro_data: Dict[Tuple[int, int], Map], map_data: Map
+    pro_data: Dict[Tuple[int, int], Map], subset_size: int = 0
 ) -> Tuple[List[Any], int]:
     """Finds the shortest combination of paths between properties
     using Held Karp's algorithm.
@@ -232,20 +233,22 @@ def heldKarp(
     Args:
         pro_data (Dict[Tuple[int, int], Map]): contains distances between
             all properties. Access via Dict[starting][destination].dist
-        map_data (Map): contains information about the map
+        subset_size (int): defines how many points we want to visit
 
     Returns:
         Tuple[List[Any], int]: (order of properties' coordinates, distance)
     """
 
-    points, base, start = map_data.properties.values()
+    points, base, start = tuple(pro_data.values())[0].properties.values()
     points = frozenset(points)
+    subset_size = subset_size if subset_size else len(points)
 
     key = Tuple[Tuple[int, int], FrozenSet[int]]
     value = Tuple[int, Tuple[int, int]]
     nodes = {}  # type: Dict[key, value]
 
-    for row in range(len(points)):
+    # get the shortest combinations of all sizes
+    for row in range(subset_size):
         for comb in combinations(points, row):
             combSet = frozenset(comb)
             for dest in points - combSet:
@@ -263,6 +266,7 @@ def heldKarp(
                         routes.append((cost, begin))
                     nodes[dest, combSet] = min(routes)
 
+    # get final destination and its parent to backtrack remaining properties
     com = []
     for i, node in enumerate(reversed(dict(nodes))):
         if i < len(points):
@@ -274,7 +278,8 @@ def heldKarp(
             cost, next_step = val
             break
 
-    for _ in points:
+    # backtracking remaining properties
+    for _ in range(subset_size - 1):
         path.append(next_step)
         points -= {next_step}
         next_step = nodes[next_step, points][1]
@@ -354,30 +359,38 @@ def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
 
 def main() -> None:
     file_name = "queried"
-    movement = "M"
+    movement = "M"  # N - Manhattan, D - Diagonal
+    terraining = "S"  # S - swamp, C - climbing
+    algorithm = "HK"  # HK - Held Kapr, NP - Naive Permutations
+    subset_size = 0
 
     moves = getMoves(movement)
     map_data = Map(file_name)
     pro_data = findShortestDistances(map_data, moves)
 
+    # Todo subset_size > 2 and subset_size <= points
+    #    return
+
     print("Starting Naive solution")
-    order, dist = naivePermutations(pro_data, map_data)
+    order, dist = naivePermutations(pro_data, subset_size)
     path = getPaths(pro_data, order)
     printSolution(path, dist)
 
     print("Starting Held Karp")
-    order2, dist2 = heldKarp(pro_data, map_data)
+    order2, dist2 = heldKarp(pro_data, subset_size)
     path2 = getPaths(pro_data, order2)
     printSolution(path2, dist2)
 
 
 main()
 
-# create <query> -> <newfilename>           ( -> ... is optional)
-# load <filename> -> <newfilename>          ( -> ... is optional)
-# use better parser..?
-
-# ToDo: Create tests
 # ToDo: Held Karp (Add Shortest subset combo)
 # ToDo: Pathfinding (C: Climbing, S: Swamp)
+# ToDo: Create tests
 # ToDo: Add Rule based system in the end (each paper is one fact)
+
+# ToDo: Unnecessary map copyings -> use static class variables somehow?
+# ToDo: Bot interface:
+#   create <query> -> <newfilename>           ( -> ... is optional)
+#   load <filename> -> <newfilename>          ( -> ... is optional)
+#   use better parser..?
