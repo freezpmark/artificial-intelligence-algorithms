@@ -477,9 +477,11 @@ def createProperties(
 
 if __name__ == "__main__":
 
+    # parameters
     max_runs = 3
     points_amount = 3
 
+    # to be interfaced
     create_walls = True
     import_walls = True
     import_terrain = True

@@ -25,15 +25,15 @@ class Node:
 
 
 class Map:
-    def __init__(self, file_name) -> None:
-        self.file_name = ""  # type: str
+    def __init__(self, fname) -> None:
+        self.fname = ""  # type: str
         self.__width = 0  # type: int
         self.__height = 0  # type: int
         self.nodes = {}  # type: Dict[Tuple[int, int], Node]
         self.properties = {}  # type: Dict[str, Any]
-        self.__loadMap(file_name)
+        self.__loadMap(fname)
 
-    def __loadMap(self, file_name) -> None:
+    def __loadMap(self, fname) -> None:
         properties = {
             "points": [],
             "base": 0,
@@ -41,7 +41,7 @@ class Map:
         }  # type: Dict[str, Any]
         nodes = {}  # type: Dict[Tuple[int, int], Node]
         try:
-            with open("simulation/maps/" + file_name + "_pro.txt") as f:
+            with open("simulation/maps/" + fname + "_pro.txt") as f:
                 for i, line in enumerate(f):
                     for j, col in enumerate(line.split()):
                         if col[0] in "([{":
@@ -57,7 +57,7 @@ class Map:
             pass
 
         if all(properties.values()) and len(properties["points"]) > 1:
-            self.file_name = file_name
+            self.fname = fname
             self.nodes = nodes
             self.properties = properties
             self.__height = i + 1
@@ -402,33 +402,52 @@ def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
     print("Cost: " + str(distance) + "\n")
 
 
-def main() -> None:
-    file_name = "queried"
-    movement = "M"  # M - Manhattan, D - Diagonal
-    climb = False
-    algorithm = "HK"  # HK - Held Karp, NP - Naive Permutations
-    subset_size = None
+def runPathFindingSolution(pars: Dict[str, Any]) -> None:
+    """Finds a solution and prints it.
 
-    moves = getMoves(movement)
-    map_data = Map(file_name)
-    pro_data = findShortestDistances(map_data, moves, climb)
+    Args:
+        pars (Dict[str, Any]): parameters that contain these string values:
+            fname: string (name of the file without _pro),
+            movement: string (M - Manhattan, D - Diagonal),
+            climb: bool (climbing distance approach,
+            algorithm: string (HK - Held Karp, NP - Naive Permutations),
+            subset_size: None/int (number of points we want to visit,
+                None means all)
+    """
 
-    if subset_size is not None and subset_size < 2:
-        order, dist = noCombed(pro_data, subset_size)
-    elif algorithm == "NP":
-        order, dist = naivePermutations(pro_data, subset_size)
+    moves = getMoves(pars["movement"])
+    map_data = Map(pars["fname"])
+    pro_data = findShortestDistances(map_data, moves, pars["climb"])
+
+    if pars["subset_size"] is not None and pars["subset_size"] < 2:
+        order, dist = noCombed(pro_data, pars["subset_size"])
+    elif pars["algorithm"] == "NP":
+        order, dist = naivePermutations(pro_data, pars["subset_size"])
     else:
-        order, dist = heldKarp(pro_data, subset_size)
+        order, dist = heldKarp(pro_data, pars["subset_size"])
 
     path = getPaths(pro_data, order)
+
     printSolution(path, dist)
+
+
+def main() -> None:
+
+    # parameters
+    pars = dict(
+        fname="queried",
+        movement="M",
+        climb=False,
+        algorithm="HK",
+        subset_size=None,
+    )
+
+    runPathFindingSolution(pars)
 
 
 main()
 
-# ToDo: Unnecessary map copyings -> use static class variables somehow?
-# ToDo: main function
-# ToDo: add parameters commentary in main (evo)
+# ToDo: Add Rule based system in the end (each point is one fact)
 
 # ToDo: Create tests
-# ToDo: Add Rule based system in the end (each paper is one fact)
+# ToDo: Unnecessary map copyings -> use static class variables somehow?
