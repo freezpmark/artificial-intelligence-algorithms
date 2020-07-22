@@ -407,10 +407,10 @@ def runPathFindingSolution(pars: Dict[str, Any]) -> None:
 
     Args:
         pars (Dict[str, Any]): parameters that contain these string values:
-            fname: string (name of the file without _pro),
-            movement: string (M - Manhattan, D - Diagonal),
+            fname: string (name of the file without _pro.txt),
+            movement: string (D - Diagonal, any - Manhattan),
             climb: bool (climbing distance approach,
-            algorithm: string (HK - Held Karp, NP - Naive Permutations),
+            algorithm: string (NP - Naive Permutations, any - Held Karp),
             subset_size: None/int (number of points we want to visit,
                 None means all)
     """
@@ -431,7 +431,7 @@ def runPathFindingSolution(pars: Dict[str, Any]) -> None:
     printSolution(path, dist)
 
 
-def main() -> None:
+if __name__ == "__main__":
 
     # parameters
     pars = dict(
@@ -444,8 +444,6 @@ def main() -> None:
 
     runPathFindingSolution(pars)
 
-
-main()
 
 # ToDo: Add Rule based system in the end (each point is one fact)
 
