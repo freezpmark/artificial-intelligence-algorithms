@@ -1,31 +1,31 @@
 DruhyRodic1:
-AK (( ?X je rodic ?Y )( manzelia ?X ?Z ))
-POTOM (( pridaj ?Z je rodic ?Y ))
+( ?X je rodic ?Y )( manzelia ?X ?Z )
+( pridaj ?Z je rodic ?Y )
 
 DruhyRodic2:
-AK (( ?X je rodic ?Y )( manzelia ?Z ?X ))
-POTOM (( pridaj ?Z je rodic ?Y ))
+( ?X je rodic ?Y )( manzelia ?Z ?X )
+( pridaj ?Z je rodic ?Y )
 
 Otec:
-AK (( ?X je rodic ?Y )( muz ?X ))
-POTOM (( pridaj ?X je otec ?Y ))
+( ?X je rodic ?Y )( muz ?X )
+( pridaj ?X je otec ?Y )
 
 Matka:
-AK (( ?X je rodic ?Y )( zena ?X ))
-POTOM (( pridaj ?X je matka ?Y ))
+( ?X je rodic ?Y )( zena ?X )
+( pridaj ?X je matka ?Y )
 
 Surodenci:
-AK (( ?X je rodic ?Y )( ?X je rodic ?Z )( <> ?Y ?Z ))
-POTOM (( pridaj ?Y a ?Z su surodenci ))
+( ?X je rodic ?Y )( ?X je rodic ?Z )( <> ?Y ?Z )
+( pridaj ?Y a ?Z su surodenci )
 
 Brat:
-AK (( ?Y a ?Z su surodenci )( muz ?Y ))
-POTOM (( pridaj ?Y je brat ?Z ))
+( ?Y a ?Z su surodenci )( muz ?Y )
+( pridaj ?Y je brat ?Z )
 
 Stryko:
-AK (( ?Y je brat ?Z )( ?Z je rodic ?X ))
-POTOM (( pridaj ?Y je stryko ?X )( sprava ?X ma stryka ))
+( ?Y je brat ?Z )( ?Z je rodic ?X )
+( pridaj ?Y je stryko ?X )( sprava ?X ma stryka )
 
 Test_mazania:
-AK (( ?Y je stryko ?X )( zena ?X ))
-POTOM (( vymaz zena ?X ))
+( ?Y je stryko ?X )( zena ?X )
+( vymaz zena ?X )
