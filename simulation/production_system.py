@@ -2,6 +2,52 @@ import collections as col
 from itertools import islice
 
 
+def expand(conds, facts, mapping):
+
+    acts = []
+    for fact in facts:
+        fact = fact.split()  # uz sme daco appendli for act!
+        tmp_mapping = {}
+        upd = True
+        for i, (c, f) in enumerate(zip(conds, fact)):
+            c_key = c.rstrip(",")
+            if c_key.startswith("?") and f[0].isupper():  # new entity
+                if c_key not in mapping:
+                    if f not in mapping.values():
+                        tmp_mapping[c_key] = f  # # neexistuje ani jedno
+                    else:
+                        upd = False
+                        break  # f existuje, a c neexistuje
+                elif mapping[c_key] != f:
+                    upd = False
+                    break  # c existuje, f v nom nieje -> break
+                else:
+                    continue  # ak existuju oba, continue
+            elif c_key.startswith("<"):  # special cond at the end
+                if mapping[conds[i + 1]] == mapping[conds[i + 2]]:
+                    upd = False
+                break
+            elif c_key != f:  # difference
+                upd = False
+                break
+
+            if c.endswith(","):  # next cond -> recursive call
+                new_act = expand(
+                    conds[i + 1 :], facts, {**mapping, **tmp_mapping}
+                )
+                if new_act:
+                    if isinstance(new_act, list):  # nesting conds
+                        acts += new_act
+                    else:
+                        acts.append(new_act)
+
+        if upd and not c.endswith(","):  # found a match for action!
+            # return {**mapping, **tmp_mapping}
+            acts.append({**mapping, **tmp_mapping})
+
+    return acts
+
+
 def runProduction():
     Rules = col.namedtuple("Rule", "name conds acts")
 
@@ -14,33 +60,6 @@ def runProduction():
             f1.readline()
     with open("simulation/facts.txt") as f2:
         facts = [fact.rstrip() for fact in f2]
-
-    while True:
-        for rule in rules:
-            mapping = {}
-            conds = rule.conds.split(",")
-            for cond in conds:
-                for fact in facts:
-                    pot_mapping = {}
-                    upd = True
-                    csplit = cond.split()
-                    fsplit = fact.split()
-                    for i, (c, f) in enumerate(zip(csplit, fsplit)):
-                        if c[0] == "?" and c not in mapping:
-                            pot_mapping[c] = f
-                        elif c != f:
-                            upd = False
-                            break
-                        elif c[0] == "<":
-                            if mapping[csplit[i+1]] == mapping[csplit[i+2]]:
-                                upd = False
-                            break
-                    if upd:
-                        mapping = {**mapping, **pot_mapping}
-                        break
-
-            print(mapping)
-        break
 
 
 if __name__ == "__main__":
