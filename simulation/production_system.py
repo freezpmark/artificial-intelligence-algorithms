@@ -44,15 +44,17 @@ def expand(conds, facts, mapping):
         if upd and not c.endswith(","):  # found a match for action!
             # return {**mapping, **tmp_mapping}
             acts.append({**mapping, **tmp_mapping})
+            if c == "<>":  # facts are irelevant, we would do duplicates
+                break
 
     return acts
 
 
 def runProduction():
-    Rules = col.namedtuple("Rule", "name conds acts")
 
     # ToDo: check whether file is in correct format with regexp
-    # we've loaded the files
+    # Loading files
+    Rules = col.namedtuple("Rule", "name conds acts")
     with open("simulation/rules.txt") as f1:
         rules = []
         while rule := [line.rstrip("\n:") for line in islice(f1, 3)]:
