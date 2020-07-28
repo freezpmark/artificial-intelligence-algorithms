@@ -1,31 +1,31 @@
 DruhyRodic1:
-( ?X je rodic ?Y )( manzelia ?X ?Z )
-( pridaj ?Z je rodic ?Y )
+?X je rodic ?Y, manzelia ?X ?Z
+pridaj ?Z je rodic ?Y
 
 DruhyRodic2:
-( ?X je rodic ?Y )( manzelia ?Z ?X )
-( pridaj ?Z je rodic ?Y )
+?X je rodic ?Y, manzelia ?Z ?X
+pridaj ?Z je rodic ?Y
 
 Otec:
-( ?X je rodic ?Y )( muz ?X )
-( pridaj ?X je otec ?Y )
+?X je rodic ?Y, muz ?X
+pridaj ?X je otec ?Y
 
 Matka:
-( ?X je rodic ?Y )( zena ?X )
-( pridaj ?X je matka ?Y )
+?X je rodic ?Y, zena ?X
+pridaj ?X je matka ?Y
 
 Surodenci:
-( ?X je rodic ?Y )( ?X je rodic ?Z )( <> ?Y ?Z )
-( pridaj ?Y a ?Z su surodenci )
+?X je rodic ?Y, ?X je rodic ?Z, <> ?Y ?Z
+pridaj ?Y a ?Z su surodenci
 
 Brat:
-( ?Y a ?Z su surodenci )( muz ?Y )
-( pridaj ?Y je brat ?Z )
+?Y a ?Z su surodenci, muz ?Y
+pridaj ?Y je brat ?Z
 
 Stryko:
-( ?Y je brat ?Z )( ?Z je rodic ?X )
-( pridaj ?Y je stryko ?X )( sprava ?X ma stryka )
+?Y je brat ?Z, ?Z je rodic ?X
+pridaj ?Y je stryko ?X, sprava ?X ma stryka
 
 Test_mazania:
-( ?Y je stryko ?X )( zena ?X )
-( vymaz zena ?X )
+?Y je stryko ?X, zena ?X
+vymaz zena ?X
