@@ -63,6 +63,65 @@ def runProduction():
     with open("simulation/facts.txt") as f2:
         facts = [fact.rstrip() for fact in f2]
 
+    while True:
+        all_actions = []
+        for rule in rules:
+            for actions in expand(rule.conds.split(), facts, {}):
+                line_actions = []
+                for rule_act in rule.acts.split(", "):
+                    act_type, filling_act = rule_act.split(" ", 1)
+                    for key in filling_act.split():
+                        c_key = key.rstrip(",")
+                        if c_key.startswith("?"):
+                            filling_act = filling_act.replace(
+                                c_key, actions[c_key]
+                            )
+                    line_actions.append(act_type + " " + filling_act)
+                all_actions.append(line_actions)
+
+        # remove duplicates
+        i = 0
+        for _ in range(len(all_actions)):
+            message = True
+            j = 0
+            for _ in range(len(all_actions[i])):
+                act_type, act = all_actions[i][j].split(" ", 1)
+                if (
+                    (act_type == "pridaj" and act in facts)
+                    or (act_type == "vymaz" and act not in facts)
+                    or (act_type == "sprava" and not message)
+                ):
+                    del all_actions[i][j]
+                    message = False
+                else:
+                    j += 1
+            if not all_actions[i]:
+                del all_actions[i]
+            else:
+                i += 1
+
+        # message must be positioned as last action in line_actions
+        # message will be printed only when all acts were added
+
+        # apply action if exist
+        if not all_actions:
+            break
+        messages = []
+        for action in all_actions[0]:
+            act_type, act = action.split(" ", 1)
+            if act_type == "pridaj":  # messages should be after actions
+                facts.append(act)
+            elif act_type == "vymaz":
+                facts.remove(act)
+            elif act_type == "sprava":
+                messages.append(act)
+
+        for fact in facts:
+            print(fact)
+        for msg in messages:
+            print("MESSAGE:", msg)
+        print()
+
 
 if __name__ == "__main__":
     runProduction()
