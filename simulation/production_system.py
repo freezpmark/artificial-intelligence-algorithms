@@ -3,8 +3,11 @@ from itertools import islice
 
 
 def expand(conds, facts, mapping):
+    # ToDo: beautify this function!
+    # LOOP over rule's conditions recursively
 
     acts = []
+    # LOOP over facts
     for fact in facts:
         fact = fact.split()  # uz sme daco appendli for act!
         tmp_mapping = {}
@@ -23,7 +26,8 @@ def expand(conds, facts, mapping):
                     break  # c existuje, f v nom nieje -> break
                 else:
                     continue  # ak existuju oba, continue
-            elif c_key.startswith("<"):  # special cond at the end
+            # () with <> means they have to be different
+            elif c_key.startswith("<"):  # special cond at the end,,
                 if mapping[conds[i + 1]] == mapping[conds[i + 2]]:
                     upd = False
                 break
@@ -43,97 +47,107 @@ def expand(conds, facts, mapping):
 
         if upd and not c.endswith(","):  # found a match for action!
             # return {**mapping, **tmp_mapping}
-            acts.append({**mapping, **tmp_mapping})
+            acts.append({**mapping, **tmp_mapping})  # save action
             if c == "<>":  # facts are irelevant, we would do duplicates
                 break
 
     return acts
 
 
-def runProduction():
-
-    # ToDo: check whether file is in correct format with regexp
-    # Loading files
+def loadFiles():
     Rules = col.namedtuple("Rule", "name conds acts")
     with open("simulation/rules.txt") as f1:
         rules = []
         while rule := [line.rstrip("\n:") for line in islice(f1, 3)]:
             rules.append(Rules(*rule))
             f1.readline()
+
     with open("simulation/facts.txt") as f2:
         facts = [fact.rstrip() for fact in f2]
 
-    while True:
-        all_actions = []
-        for rule in rules:
-            for actions in expand(rule.conds.split(), facts, {}):
-                line_actions = []
-                for rule_act in rule.acts.split(", "):
-                    act_type, filling_act = rule_act.split(" ", 1)
-                    for key in filling_act.split():
-                        c_key = key.rstrip(",")
-                        if c_key.startswith("?"):
-                            filling_act = filling_act.replace(
-                                c_key, actions[c_key]
-                            )
-                    line_actions.append(act_type + " " + filling_act)
-                all_actions.append(line_actions)
+    return rules, facts
 
-        # remove duplicates
-        i = 0
-        for _ in range(len(all_actions)):
-            message = True
-            j = 0
-            for _ in range(len(all_actions[i])):
-                act_type, act = all_actions[i][j].split(" ", 1)
-                if (
-                    (act_type == "pridaj" and act in facts)
-                    or (act_type == "vymaz" and act not in facts)
-                    or (act_type == "sprava" and not message)
-                ):
-                    del all_actions[i][j]
-                    message = False
-                else:
-                    j += 1
-            if not all_actions[i]:
-                del all_actions[i]
+
+def findActions(rules, facts):
+
+    actions_found = []
+    for rule in rules:  # LOOP over rules
+        rule_acts = [act.split(" ", 1) for act in rule.acts.split(", ")]
+        rule_acts_label = expand(rule.conds.split(), facts, {})
+        for label in rule_acts_label:
+
+            actions = []
+            for act_type, action in rule_acts:
+                for key in [key.rstrip(",") for key in action.split()]:
+                    if key.startswith("?"):
+                        action = action.replace(key, label[key])
+                actions.append(act_type + " " + action)
+
+            actions_found.append(actions)
+
+    return actions_found
+
+
+def removeDuplicates(actions_found, facts):
+
+    i = 0
+    for _ in range(len(actions_found)):
+        message = True  # happens when there wasnt a duplicate in prev acts
+        j = 0
+        for _ in range(len(actions_found[i])):
+            act_type, act = actions_found[i][j].split(" ", 1)
+            if (
+                (act_type == "pridaj" and act in facts)
+                or (act_type == "vymaz" and act not in facts)
+                or (act_type == "sprava" and not message)
+            ):
+                del actions_found[i][j]
+                message = False
             else:
-                i += 1
+                j += 1
+        if not actions_found[i]:
+            del actions_found[i]
+        else:
+            i += 1
 
-        # message must be positioned as last action in line_actions
-        # message will be printed only when all acts were added
+    return actions_found
 
-        # apply action if exist
-        if not all_actions:
+
+def applyActions(actions_appliable, facts):
+
+    messages = []
+    for action in actions_appliable[0]:
+        act_type, act = action.split(" ", 1)
+        if act_type == "pridaj":
+            facts.append(act)
+        elif act_type == "vymaz":
+            facts.remove(act)
+        elif act_type == "sprava":
+            messages.append(act)
+
+    return facts, messages
+
+
+def runProduction():
+
+    # ToDo: check whether file is in correct format with regexp
+    rules, facts = loadFiles()
+
+    # LOOP over to-be FACTS
+    while True:
+        actions_found = findActions(rules, facts)
+        actions_appliable = removeDuplicates(actions_found, facts)
+
+        if not actions_appliable:
             break
-        messages = []
-        for action in all_actions[0]:
-            act_type, act = action.split(" ", 1)
-            if act_type == "pridaj":  # messages should be after actions
-                facts.append(act)
-            elif act_type == "vymaz":
-                facts.remove(act)
-            elif act_type == "sprava":
-                messages.append(act)
 
+        facts, msgs = applyActions(actions_appliable, facts)
         for fact in facts:
             print(fact)
-        for msg in messages:
+        for msg in msgs:
             print("MESSAGE:", msg)
         print()
 
 
 if __name__ == "__main__":
     runProduction()
-
-    # save rules: rule -> rule -> rule -> rule: struct(name, cond, action)
-    # save facts: fact -> fact -> fact -> fact: struct(<cond>)
-
-    # ITERATE through to-be FACTS
-    #     ITERATE through RULES
-    #         ITERATE through RULES' BRACKETS (recursively)
-    #             ITERATE through FACTS to fill ?X's (everywhere) and ?Y etc.
-    #         Save action to be processed (actions are reseted after action)
-
-    # () with <> means they have to be different
-    # (they can be the same among siblings! Parent can have 2x the same child)
