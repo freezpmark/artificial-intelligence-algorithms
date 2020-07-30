@@ -4,25 +4,48 @@ from typing import Any, Dict, List, Tuple
 
 
 def loadFiles() -> Tuple[List[Any], List[str]]:
+    """Loads rules and facts from predefined text files.
+    (simulation/knowledge/rules.txt, facts.txt)
 
-    Rules = col.namedtuple("Rule", "name conds labels")
+    Returns:
+        Tuple[List[Any], List[str]]:
+        namedtuples with these attributes:
+            name - name of the rule
+            conds - conditions to fulfil actions
+            acts - actions (message, add or remove fact from the set of facts)
+        fact sentences
+    """
+
+    Rules = col.namedtuple("Rule", "name conds acts")
     rules = []
-    with open("simulation/rules.txt") as f1:
+    with open("simulation/knowledge/rules.txt") as f1:
         while rule := [line.rstrip("\n:") for line in islice(f1, 3)]:
             rules.append(Rules(*rule))
             f1.readline()
 
-    with open("simulation/facts.txt") as f2:
+    with open("simulation/knowledge/facts.txt") as f2:
         facts = [fact.rstrip() for fact in f2]
 
     return rules, facts
 
 
 def findActions(rules: List[Any], facts: List[str]) -> List[List[str]]:
+    """Finds all actions from given facts.
+
+    Args:
+        rules (List[Any]): namedtuples with these attributes:
+            name - name of the rule (is not used for any purpose)
+            conds - conditions for fulfilling rule's actions
+            acts - actions (message, add or remove fact from the set of facts)
+        facts (List[str]): fact sentences
+
+    Returns:
+        List[List[str]]: lists of actions that have been found from each rule
+    """
 
     actions_found = []
     for rule in rules:  # LOOP over rules
-        rule_acts = [act.split(" ", 1) for act in rule.labels.split(", ")]
+        rule_acts = [act.split(" ", 1) for act in rule.acts.split(", ")]
         rule_acts_label = expand(rule.conds.split(), facts, {})
         for label in rule_acts_label:
 
@@ -41,10 +64,20 @@ def findActions(rules: List[Any], facts: List[str]) -> List[List[str]]:
 def removeDuplicates(
     actions_found: List[List[str]], facts: List[str]
 ) -> List[List[str]]:
+    """Removes the outcome of actions that were already present in the facts.
+
+    Args:
+        actions_found (List[List[str]]): lists of actions that have been
+            found from each rule
+        facts (List[str]): fact sentences
+
+    Returns:
+        List[List[str]]: lists of appliable actions
+    """
 
     i = 0
     for _ in range(len(actions_found)):
-        message = True  # happens when there wasnt a duplicate in prev labels
+        message = True  # happens when there wasnt a duplicate in prev acts
         j = 0
         for _ in range(len(actions_found[i])):
             type_, act = actions_found[i][j].split(" ", 1)
@@ -68,6 +101,15 @@ def removeDuplicates(
 def applyActions(
     actions_appliable: List[List[str]], facts: List[str]
 ) -> Tuple[List[str], List[str]]:
+    """Applies list of actions that are first in the queue.
+
+    Args:
+        actions_appliable (List[List[str]]): lists of appliable actions
+        facts (List[str]): fact sentences
+
+    Returns:
+        Tuple[List[str], List[str]]: new fact sentences, messages
+    """
 
     messages = []
     for action in actions_appliable[0]:
@@ -85,7 +127,17 @@ def applyActions(
 def expand(
     conds: List[str], facts: List[str], label: Dict[str, str]
 ) -> List[Dict[str, str]]:
-    # LOOP over rule's conditions recursively
+    """Loops over conditions of a rule recursively and finds all
+    condition-matching labels from given facts.
+
+    Args:
+        conds (List[str]): conditions for fulfilling rule's actions
+        facts (List[str]): fact sentences
+        label (Dict[str, str]): represent entities (?X -> <entity from fact>)
+
+    Returns:
+        List[Dict[str, str]]: labels
+    """
 
     # LOOP over facts
     labels = []
@@ -129,6 +181,7 @@ def expand(
 
 
 def runProduction() -> None:
+    """Finds a solution and prints it."""
 
     # ToDo: check whether file is in correct format with regexp
     rules, facts = loadFiles()
@@ -150,4 +203,5 @@ def runProduction() -> None:
 
 
 if __name__ == "__main__":
+
     runProduction()
