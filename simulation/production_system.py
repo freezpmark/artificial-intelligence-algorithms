@@ -82,9 +82,9 @@ def removeDuplicates(
         for _ in range(len(actions_found[i])):
             type_, act = actions_found[i][j].split(" ", 1)
             if (
-                (type_ == "pridaj" and act in facts)
-                or (type_ == "vymaz" and act not in facts)
-                or (type_ == "sprava" and not message)
+                (type_ == "add" and act in facts)
+                or (type_ == "remove" and act not in facts)
+                or (type_ == "message" and not message)
             ):
                 del actions_found[i][j]
                 message = False
@@ -114,11 +114,11 @@ def applyActions(
     messages = []
     for action in actions_appliable[0]:
         type_, act = action.split(" ", 1)
-        if type_ == "pridaj":
+        if type_ == "add":
             facts.append(act)
-        elif type_ == "vymaz":
+        elif type_ == "remove":
             facts.remove(act)
-        elif type_ == "sprava":
+        elif type_ == "message":
             messages.append(act)
 
     return facts, messages

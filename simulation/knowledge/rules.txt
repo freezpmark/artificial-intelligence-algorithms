@@ -1,31 +1,31 @@
-DruhyRodic1:
-?X je rodic ?Y, manzelia ?X ?Z
-pridaj ?Z je rodic ?Y
+FirstParent:
+?X is parent of ?Y, married ?X ?Z
+add ?Z is parent of ?Y
 
-DruhyRodic2:
-?X je rodic ?Y, manzelia ?Z ?X
-pridaj ?Z je rodic ?Y
+SecondParent:
+?X is parent of ?Y, married ?Z ?X
+add ?Z is parent of ?Y
 
-Otec:
-?X je rodic ?Y, muz ?X
-pridaj ?X je otec ?Y
+Father:
+?X is parent of ?Y, male ?X
+add ?X is father ?Y
 
-Matka:
-?X je rodic ?Y, zena ?X
-pridaj ?X je matka ?Y
+Mother:
+?X is parent of ?Y, female ?X
+add ?X is mother ?Y
 
-Surodenci:
-?X je rodic ?Y, ?X je rodic ?Z, <> ?Y ?Z
-pridaj ?Y a ?Z su surodenci
+Siblings:
+?X is parent of ?Y, ?X is parent of ?Z, <> ?Y ?Z
+add ?Y and ?Z are siblings
 
-Brat:
-?Y a ?Z su surodenci, muz ?Y
-pridaj ?Y je brat ?Z
+Brother:
+?Y and ?Z are siblings, male ?Y
+add ?Y is brother of ?Z
 
-Stryko:
-?Y je brat ?Z, ?Z je rodic ?X
-pridaj ?Y je stryko ?X, sprava ?X ma stryka
+Uncle:
+?Y is brother of ?Z, ?Z is parent of ?X
+add ?Y is uncle of ?X, message ?X has uncle
 
-Test_mazania:
-?Y je stryko ?X, zena ?X
-vymaz zena ?X
+Remove_test:
+?Y is uncle of ?X, female ?X
+remove female ?X
