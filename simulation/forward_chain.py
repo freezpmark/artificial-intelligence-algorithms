@@ -183,7 +183,6 @@ def expand(
 def runProduction() -> None:
     """Finds a solution and prints it."""
 
-    # ToDo: check whether file is in correct format with regexp
     rules, facts = loadFiles()
 
     # LOOP over to-be FACTS

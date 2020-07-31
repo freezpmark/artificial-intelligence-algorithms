@@ -140,11 +140,6 @@ def evolutionize(
             print(f"each generation took {avg}s in average.")
             print(f"Chromosome: {chromo}")
 
-            for row in filled_map:
-                for col in row:
-                    print("{0:2}".format(col), end=" ")
-                print()
-
             attempt_number += 1
             if not found_solution and attempt_number <= max_runs:
                 print(f"\nAttempt number {attempt_number}.")
@@ -479,12 +474,12 @@ if __name__ == "__main__":
 
     # parameters
     max_runs = 3
-    points_amount = 3
+    points_amount = 12
 
     # to be interfaced
     create_walls = True
-    import_walls = True
-    import_terrain = True
+    import_walls = False
+    import_terrain = False
 
     if create_walls:
         # create set of maps

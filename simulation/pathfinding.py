@@ -3,6 +3,8 @@ from copy import deepcopy as dcopy
 from itertools import combinations, permutations
 from sys import maxsize
 from typing import Any, Dict, FrozenSet, List, Tuple, Union
+import evolution as evo
+import forward_chain as chain
 
 
 class PositionError(Exception):
@@ -437,15 +439,16 @@ if __name__ == "__main__":
     pars = dict(
         fname="queried",
         movement="M",
-        climb=False,
+        climb=True,
         algorithm="HK",
         subset_size=None,
     )
 
+    # call three functions (from each file)
     runPathFindingSolution(pars)
 
-
-# ToDo: Add Rule based system in the end (each point is one fact)
-
-# ToDo: Create tests
-# ToDo: Unnecessary map copyings -> use static class variables somehow?
+# ToDo: production_system.py - file check with regexp
+# ToDo: production_system.py - INTERFACE - add facts parameter
+# ToDo: evolution.py - INTERFACE - add parameters for creation of map
+# ToDo: pathfinding.py - MAIN INTERFACE - run all files from here
+# ToDo: Create tests -> optimize code with advanced python
