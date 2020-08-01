@@ -29,3 +29,4 @@ add ?Y is uncle of ?X, message ?X has uncle
 Remove_test:
 ?Y is uncle of ?X, female ?X
 remove female ?X
+

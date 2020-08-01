@@ -447,8 +447,8 @@ if __name__ == "__main__":
     # call three functions (from each file)
     runPathFindingSolution(pars)
 
-# ToDo: production_system.py - file check with regexp
 # ToDo: production_system.py - INTERFACE - add facts parameter
 # ToDo: evolution.py - INTERFACE - add parameters for creation of map
 # ToDo: pathfinding.py - MAIN INTERFACE - run all files from here
+
 # ToDo: Create tests -> optimize code with advanced python

@@ -1,11 +1,13 @@
 import collections as col
+import re
 from itertools import islice
 from typing import Any, Dict, List, Tuple
 
 
 def loadFiles() -> Tuple[List[Any], List[str]]:
-    """Loads rules and facts from predefined text files.
-    (simulation/knowledge/rules.txt, facts.txt)
+    """Loads rules and facts from predefined text files
+    (simulation/knowledge/rules.txt, facts.txt). If rules are set wrong
+    in the file, it just returns empty lists.
 
     Returns:
         Tuple[List[Any], List[str]]:
@@ -18,10 +20,27 @@ def loadFiles() -> Tuple[List[Any], List[str]]:
 
     Rules = col.namedtuple("Rule", "name conds acts")
     rules = []
+
+    # must contain non-whitespace character
+    # must contain ?X in each comma seperated statement
+    # must contain remove/add/message and ?X in each comma seperated statement
+    patterns = [
+        re.compile(r"\S+"),
+        re.compile(r"((\?[A-Z]+)[^,]*, )*.*\?[A-Z].*"),
+        re.compile(
+            r"(((add)|(remove)|(message)) .*\?[A-Z][^,]*, )*"
+            r"((add)|(remove)|(message)).*\?[A-Z].*"
+        ),
+    ]
     with open("simulation/knowledge/rules.txt") as f1:
-        while rule := [line.rstrip("\n:") for line in islice(f1, 3)]:
+        while rule := [line.rstrip("\n:") for line in islice(f1, 4)]:
+            if rule.pop():
+                print("There is no empty line after rule!")
+            for i in range(len(Rules._fields)):  # ? validation in while
+                if not patterns[i].match(rule[i]):
+                    print(Rules._fields[i], "field is set wrong!")
+                    return [], []
             rules.append(Rules(*rule))
-            f1.readline()
 
     with open("simulation/knowledge/facts.txt") as f2:
         facts = [fact.rstrip() for fact in f2]
