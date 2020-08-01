@@ -404,17 +404,21 @@ def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
     print("Cost: " + str(distance) + "\n")
 
 
-def runPathFindingSolution(pars: Dict[str, Any]) -> None:
+def runPathfinding(pars: Dict[str, Any]) -> List[List[Tuple[int, int]]]:
     """Finds a solution and prints it.
 
     Args:
         pars (Dict[str, Any]): parameters that contain these string values:
-            fname: string (name of the file without _pro.txt),
-            movement: string (D - Diagonal, any - Manhattan),
-            climb: bool (climbing distance approach,
-            algorithm: string (NP - Naive Permutations, any - Held Karp),
-            subset_size: None/int (number of points we want to visit,
-                None means all)
+            fname (string): name of the file without _pro.txt
+            movement (string): D - Diagonal, any - Manhattan
+            climb (bool): climbing distance approach
+            algorithm (string): NP - Naive Permutations, any - Held Karp
+            subset_size (None/int): number of points we want to visit
+                None means all
+
+    Returns:
+        paths (List[List[Tuple[int, int]]]): Lists of paths between
+            ordered properties
     """
 
     moves = getMoves(pars["movement"])
@@ -431,12 +435,19 @@ def runPathFindingSolution(pars: Dict[str, Any]) -> None:
     path = getPaths(pro_data, order)
 
     printSolution(path, dist)
+    return path
 
 
 if __name__ == "__main__":
 
-    # parameters
-    pars = dict(
+    evo_parameters = dict(
+        max_runs=3,
+        points_amount=11,
+        export_name="queried",
+        query="10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)",
+    )
+
+    path_parameters = dict(
         fname="queried",
         movement="M",
         climb=True,
@@ -444,11 +455,17 @@ if __name__ == "__main__":
         subset_size=None,
     )
 
-    # call three functions (from each file)
-    runPathFindingSolution(pars)
+    chain_parameters = dict(
+        save_fname_facts="facts",
+        load_fname_facts="facts_init",
+        load_fname_rules="rules",
+        step_by_step=True,
+    )
 
-# ToDo: production_system.py - INTERFACE - add facts parameter
-# ToDo: evolution.py - INTERFACE - add parameters for creation of map
-# ToDo: pathfinding.py - MAIN INTERFACE - run all files from here
+    evo.runEvolution(evo_parameters)
+    runPathfinding(path_parameters)
+    chain.runProduction(chain_parameters)
 
-# ToDo: Create tests -> optimize code with advanced python
+
+# ToDo: Fix chain?, Add numbered steps, delete older prints
+# ToDo: Create tests -> optimize code with advanced techniques of python

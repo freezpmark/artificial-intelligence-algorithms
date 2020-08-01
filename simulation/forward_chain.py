@@ -4,18 +4,18 @@ from itertools import islice
 from typing import Any, Dict, List, Tuple
 
 
-def loadFiles() -> Tuple[List[Any], List[str]]:
-    """Loads rules and facts from predefined text files
-    (simulation/knowledge/rules.txt, facts.txt). If rules are set wrong
-    in the file, it just returns empty lists.
+def loadRules(fname_rules: str) -> List[Any]:
+    """Loads rules from the file. If rules are set wrong in the file,
+    it returns empty lists.
+
+    Args:
+        fname_rules (str): name of file from which we load rules
 
     Returns:
-        Tuple[List[Any], List[str]]:
-        namedtuples with these attributes:
+        List[Any]: namedtuples with these attributes:
             name - name of the rule
             conds - conditions to fulfil actions
             acts - actions (message, add or remove fact from the set of facts)
-        fact sentences
     """
 
     Rules = col.namedtuple("Rule", "name conds acts")
@@ -32,20 +32,33 @@ def loadFiles() -> Tuple[List[Any], List[str]]:
             r"((add)|(remove)|(message)).*\?[A-Z].*"
         ),
     ]
-    with open("simulation/knowledge/rules.txt") as f1:
+    with open("simulation/knowledge/" + fname_rules + ".txt") as f1:
         while rule := [line.rstrip("\n:") for line in islice(f1, 4)]:
             if rule.pop():
                 print("There is no empty line after rule!")
             for i in range(len(Rules._fields)):  # ? validation in while
                 if not patterns[i].match(rule[i]):
                     print(Rules._fields[i], "field is set wrong!")
-                    return [], []
+                    return []
             rules.append(Rules(*rule))
 
-    with open("simulation/knowledge/facts.txt") as f2:
-        facts = [fact.rstrip() for fact in f2]
+    return rules
 
-    return rules, facts
+
+def loadFacts(fname_facts: str) -> List[str]:
+    """Loads facts from the file.
+
+    Args:
+        fname_facts (str): name of file from which we load facts
+
+    Returns:
+        List[str]: fact sentences
+    """
+
+    with open("simulation/knowledge/" + fname_facts + ".txt") as f:
+        facts = [fact.rstrip() for fact in f]
+
+    return facts
 
 
 def findActions(rules: List[Any], facts: List[str]) -> List[List[str]]:
@@ -199,10 +212,58 @@ def expand(
     return labels
 
 
-def runProduction() -> None:
-    """Finds a solution and prints it."""
+def saveFacts(facts: List[str], save_fname_facts: str) -> None:
+    """Save facts into text file.
 
-    rules, facts = loadFiles()
+    Args:
+        facts (List[List[str]]): list of new found facts
+        save_fname_facts (str): name of the file
+    """
+
+    with open("simulation/knowledge/" + save_fname_facts + ".txt", "w") as f:
+        f.write("\n".join(facts))
+
+
+def runProduction(pars: Dict[str, Any]) -> None:
+    """Finds a solution and saves it to text file.
+
+    Args:
+        pars (Dict[str, Any]): parameters that contain these string values:
+            save_fname_facts (str): name of file into which facts will be saved
+            load_fname_facts (str): name of file from which we load facts
+            load_fname_rules (str): name of file from which we load rules
+            step_by_step (bool): entering one fact by each Production run
+    """
+
+    rules = loadRules(pars["load_fname_rules"])
+    facts = loadFacts(pars["load_fname_facts"])
+
+    if pars["step_by_step"]:
+        found_facts = []  # type: List[str]
+        for i, fact in enumerate(facts):
+            found_facts = runForwardChain(
+                found_facts + [fact], rules, pars["save_fname_facts"]
+            )
+    else:
+        runForwardChain(facts, rules, pars["save_fname_facts"])
+
+
+def runForwardChain(
+    facts: List[str], rules: List[Any], save_fname_facts: str
+) -> List[str]:
+    """Finds a solution and saves it to the text file.
+
+    Args:
+        facts (List[str]): fact sentences
+        rules (List[Any]): namedtuples with these attributes:
+            name - name of the rule
+            conds - conditions to fulfil actions
+            acts - actions (message, add or remove fact from the set of facts)
+        save_fname_facts (str): name of the file into which facts will be saved
+
+    Returns:
+        List[str]: fact sentences
+    """
 
     # LOOP over to-be FACTS
     while True:
@@ -210,6 +271,7 @@ def runProduction() -> None:
         actions_appliable = removeDuplicates(actions_found, facts)
 
         if not actions_appliable:
+            saveFacts(facts, save_fname_facts)
             break
 
         facts, msgs = applyActions(actions_appliable, facts)
@@ -219,7 +281,16 @@ def runProduction() -> None:
             print("MESSAGE:", msg)
         print()
 
+    return facts
+
 
 if __name__ == "__main__":
 
-    runProduction()
+    chain_parameters = dict(
+        save_fname_facts="facts",
+        load_fname_facts="facts_init",
+        load_fname_rules="rules",
+        step_by_step=True,
+    )
+
+    runProduction(chain_parameters)

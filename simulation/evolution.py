@@ -326,13 +326,17 @@ def generateProperties(
 
 
 def saveMap(
-    map_list: List[List[str]], import_name: str, spacing: str = "{:^3}"
+    map_list: List[List[str]],
+    import_name: str,
+    show: bool = False,
+    spacing: str = "{:^3}",
 ) -> None:
-    """Saves a map into text file.
+    """Saves a map into text file. It can also print the map into console.
 
     Args:
         map_list (List[List[str]]): 2D map array of the map
         import_name (str): name of the text file we're saving the map into
+        show (bool): prints the created terrain into console
         spacing (str, optional): spacing between numbers. Defaults to "{:^3}".
     """
 
@@ -340,7 +344,11 @@ def saveMap(
         for i, row in enumerate(map_list):
             for j in range(len(row)):
                 f.write(spacing.format(map_list[i][j]))
+                if show:
+                    print(spacing.format(map_list[i][j]), end=" ")
             f.write("\n")
+            if show:
+                print()
 
 
 def loadMap(import_name: str) -> List[List[str]]:
@@ -353,27 +361,27 @@ def loadMap(import_name: str) -> List[List[str]]:
         List[List[str]]: a 2D map represented with strings
     """
 
-    map_walls = []
+    map_ = []
     try:
         with open("simulation/maps/" + import_name + ".txt") as f:
             line = f.readline().rstrip()
-            map_walls.append(line.split())
+            map_.append(line.split())
             prev_length = len(line)
 
             for line in f:
                 line = line.rstrip()
                 if prev_length != len(line):
-                    map_walls = []
+                    map_ = []
                     break
                 prev_length = len(line)
-                map_walls.append(line.split())
+                map_.append(line.split())
     except FileNotFoundError:
-        map_walls = []
+        map_ = []
 
-    return map_walls
+    return map_
 
 
-def createWalls(query: str, export_name: str) -> str:
+def createWalls(query: str, export_name: str, show: bool = False) -> str:
     """Creates a file that represents unterrained map with walls.
     Map is filled with "1" being walls and "0" being walkable places
 
@@ -381,6 +389,7 @@ def createWalls(query: str, export_name: str) -> str:
         query (str): contains size of the map and tuple coordinates of walls
             example: "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
         export_name (str): root name of file that is going to be created
+        show (bool): prints the created terrain into console
 
     Returns:
         str: name of the created file (with _wal at the end)
@@ -401,13 +410,13 @@ def createWalls(query: str, export_name: str) -> str:
 
     if walled_map:
         export_name += "_wal"
-        saveMap(walled_map, export_name)
+        saveMap(walled_map, export_name, show)
         return export_name
     return ""
 
 
 def createTerrain(
-    max_runs: int, import_name: str, export_name: str = ""
+    max_runs: int, import_name: str, export_name: str = "", show: bool = False
 ) -> str:
     """Creates a file that represents terrained map.
     Map is filled with "-1" being walls and walkable places are filled
@@ -419,6 +428,7 @@ def createTerrain(
         export_name (str, optional): name of file that is going to be created
             (with _ter at the end).
             Defaults to "" (root name of imported file will be used instead).
+        show (bool): prints the created terrain into console
 
     Returns:
         str: name of the created file (with _ter at the end)
@@ -434,13 +444,16 @@ def createTerrain(
         if not export_name:
             export_name = import_name[:-4]
         export_name += "_ter"
-        saveMap(map_terrained, export_name)
+        saveMap(map_terrained, export_name, show)
         return export_name
     return ""
 
 
 def createProperties(
-    points_amount: int, import_name: str, export_name: str = ""
+    points_amount: int,
+    import_name: str,
+    export_name: str = "",
+    show: bool = False,
 ) -> str:
     """Creates a file that represents terrained map with properties.
     Properties are represented with a bracket around the number of terrain.
@@ -452,6 +465,7 @@ def createProperties(
         export_name (str, optional): name of file that is going to be created
             (with _pro at the end).
             Defaults to "" (root name of imported file will be used instead).
+        show (bool): prints the created terrain into console
 
     Returns:
         str: name of the created file (with _pro at the end)
@@ -465,37 +479,57 @@ def createProperties(
         if not export_name:
             export_name = import_name[:-4]
         export_name += "_pro"
-        saveMap(map_propertied, export_name, "{:^5}")
+        saveMap(map_propertied, export_name, show, "{:^5}")
         return export_name
     return ""
 
 
-if __name__ == "__main__":
+def runEvolution(pars: Dict[str, Any]) -> None:
+    """Runs evolution algorithm and creates maps.
 
-    # parameters
-    max_runs = 3
-    points_amount = 12
+    Args:
+        pars (Dict[str, Any]): parameters that contain these string values:
+            max_runs: (int): max number of attempts to find a solution
+            points_amount (int): amount of destination points to visit
+            export_name (str): name of the file that is going to be created
+            query (str): contains size of map and tuple coordinates of walls
+            example: "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
+    """
+
+    # create set of maps
+    import_name = createWalls(pars["query"], pars["export_name"])
+    import_name = createTerrain(pars["max_runs"], import_name)
+    import_name = createProperties(
+        pars["points_amount"], import_name, show=True
+    )
 
     # to be interfaced
-    create_walls = True
     import_walls = False
     import_terrain = False
-
-    if create_walls:
-        # create set of maps
-        query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
-        export_name = "queried"
-        import_name = createWalls(query, export_name)
-        import_name = createTerrain(max_runs, import_name)
-        import_name = createProperties(points_amount, import_name)
     if import_walls:
         # create a new set of maps from previously created walled map
         import_name = "queried_wal"
         export_name = "Wimported"
-        import_name = createTerrain(max_runs, import_name, export_name)
-        import_name = createProperties(points_amount, import_name, export_name)
+        import_name = createTerrain(pars["max_runs"], import_name, export_name)
+        import_name = createProperties(
+            pars["points_amount"], import_name, export_name
+        )
     if import_terrain:
         # create a new properties map from previous created terrained map
         import_name = "Wimported_ter"
         export_name = "Timported"
-        import_name = createProperties(points_amount, import_name, export_name)
+        import_name = createProperties(
+            pars["points_amount"], import_name, export_name
+        )
+
+
+if __name__ == "__main__":
+
+    evo_parameters = dict(
+        max_runs=3,
+        points_amount=11,
+        export_name="queried",
+        query="10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)",
+    )
+
+    runEvolution(evo_parameters)

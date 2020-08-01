@@ -1,0 +1,11 @@
+Peter is parent of Jano
+Peter is parent of Vlado
+married Peter Eva
+Vlado is parent of Maria
+Vlado is parent of Viera
+male Peter
+male Jano
+male Vlado
+female Maria
+female Viera
+female Eva
