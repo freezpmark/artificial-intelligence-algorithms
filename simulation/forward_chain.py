@@ -171,8 +171,11 @@ def expand(
         List[Dict[str, str]]: labels
     """
 
-    # LOOP over facts
+    if conds[0] == "<>":  # identity checking is included in label checking
+        return [label]
+
     labels = []
+    # LOOP over facts
     for fact_str in facts:
         fact_list = fact_str.split()
         tmp_label = {}
@@ -185,16 +188,11 @@ def expand(
                     if f not in label.values():
                         tmp_label[c_key] = f
                     else:
-                        continue_ = False
+                        continue_ = False  # f already exist
                 elif label[c_key] != f:
-                    continue_ = False
-            # key identity checking with <> special cond
-            elif c_key.startswith("<"):
-                if label[conds[i + 1]] == label[conds[i + 2]]:
-                    continue_ = False
-            # unmatched condition with fact
+                    continue_ = False  # c and f does not match
             elif c_key != f:
-                continue_ = False
+                continue_ = False  # unmatched condition with fact
 
             if not continue_:
                 break
@@ -206,8 +204,6 @@ def expand(
         # label match found for action
         if continue_ and not c.endswith(","):
             labels.append({**label, **tmp_label})
-            if c == "<>":  # iterating facts are irelevant as its independent
-                break
 
     return labels
 
@@ -245,7 +241,10 @@ def runProduction(pars: Dict[str, Any]) -> None:
                 found_facts + [fact], rules, pars["save_fname_facts"]
             )
     else:
-        runForwardChain(facts, rules, pars["save_fname_facts"])
+        found_facts = runForwardChain(facts, rules, pars["save_fname_facts"])
+
+    for fact in found_facts:
+        print(fact)
 
 
 def runForwardChain(
@@ -275,11 +274,8 @@ def runForwardChain(
             break
 
         facts, msgs = applyActions(actions_appliable, facts)
-        for fact in facts:
-            print(fact)
         for msg in msgs:
             print("MESSAGE:", msg)
-        print()
 
     return facts
 

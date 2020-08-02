@@ -467,5 +467,5 @@ if __name__ == "__main__":
     chain.runProduction(chain_parameters)
 
 
-# ToDo: Fix chain?, Add numbered steps, delete older prints
+# ToDo: Add numbered steps
 # ToDo: Create tests -> optimize code with advanced techniques of python
