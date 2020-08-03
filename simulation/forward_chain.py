@@ -132,7 +132,7 @@ def removeDuplicates(
 
 def applyActions(
     actions_appliable: List[List[str]], facts: List[str]
-) -> Tuple[List[str], List[str]]:
+) -> Tuple[str, List[str], List[str]]:
     """Applies list of actions that are first in the queue.
 
     Args:
@@ -140,7 +140,7 @@ def applyActions(
         facts (List[str]): fact sentences
 
     Returns:
-        Tuple[List[str], List[str]]: new fact sentences, messages
+        Tuple[str, List[str], List[str]]: applied act, fact sentences, messages
     """
 
     messages = []
@@ -153,7 +153,7 @@ def applyActions(
         elif type_ == "message":
             messages.append(act)
 
-    return facts, messages
+    return action, facts, messages
 
 
 def expand(
@@ -235,21 +235,26 @@ def runProduction(pars: Dict[str, Any]) -> None:
     facts = loadFacts(pars["load_fname_facts"])
 
     if pars["step_by_step"]:
-        found_facts = []  # type: List[str]
+        new_facts = []  # type: List[str]
+        dict_facts = {}
         for i, fact in enumerate(facts):
-            found_facts = runForwardChain(
-                found_facts + [fact], rules, pars["save_fname_facts"]
+            found_actions, new_facts = runForwardChain(
+                new_facts + [fact], rules, pars["save_fname_facts"]
             )
+            dict_facts[fact] = found_actions
     else:
-        found_facts = runForwardChain(facts, rules, pars["save_fname_facts"])
+        found_actions, new_facts = runForwardChain(
+            facts, rules, pars["save_fname_facts"]
+        )
+        dict_facts = {'All steps at once': found_actions}
 
-    for fact in found_facts:
-        print(fact)
+    for fact in dict_facts:
+        print(fact + " -> " + ", ".join(dict_facts[fact]))
 
 
 def runForwardChain(
     facts: List[str], rules: List[Any], save_fname_facts: str
-) -> List[str]:
+) -> Tuple[List[str], List[str]]:
     """Finds a solution and saves it to the text file.
 
     Args:
@@ -261,10 +266,11 @@ def runForwardChain(
         save_fname_facts (str): name of the file into which facts will be saved
 
     Returns:
-        List[str]: fact sentences
+        Tuple[List[str], List[str]]: facts we found, all facts
     """
 
     # LOOP over to-be FACTS
+    applied_facts = []
     while True:
         actions_found = findActions(rules, facts)
         actions_appliable = removeDuplicates(actions_found, facts)
@@ -273,11 +279,12 @@ def runForwardChain(
             saveFacts(facts, save_fname_facts)
             break
 
-        facts, msgs = applyActions(actions_appliable, facts)
-        for msg in msgs:
-            print("MESSAGE:", msg)
+        applied_fact, facts, msgs = applyActions(actions_appliable, facts)
+        applied_facts.append(applied_fact)
+        # for msg in msgs:
+        #     print("MESSAGE:", msg)
 
-    return facts
+    return applied_facts, facts
 
 
 if __name__ == "__main__":
