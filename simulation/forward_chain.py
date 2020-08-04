@@ -248,8 +248,8 @@ def runProduction(pars: Dict[str, Any]) -> None:
         )
         dict_facts = {'All steps at once': found_actions}
 
-    for fact in dict_facts:
-        print(fact + " -> " + ", ".join(dict_facts[fact]))
+    for i, fact in enumerate(dict_facts, 1):
+        print(f"{str(i)}:  {fact} -> " + ", ".join(dict_facts[fact]))
 
 
 def runForwardChain(
