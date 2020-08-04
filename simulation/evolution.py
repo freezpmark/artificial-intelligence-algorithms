@@ -499,6 +499,9 @@ def runEvolution(pars: Dict[str, Any]) -> None:
     # create set of maps
     import_name = createWalls(pars["query"], pars["export_name"])
     import_name = createTerrain(pars["max_runs"], import_name)
+    if not import_name:
+        print("Could not find a solution!")
+
     import_name = createProperties(
         pars["points_amount"], import_name, show=True
     )
@@ -511,6 +514,9 @@ def runEvolution(pars: Dict[str, Any]) -> None:
         import_name = "queried_wal"
         export_name = "Wimported"
         import_name = createTerrain(pars["max_runs"], import_name, export_name)
+        if not import_name:
+            print("Could not find a solution!")
+
         import_name = createProperties(
             pars["points_amount"], import_name, export_name
         )
