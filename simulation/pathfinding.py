@@ -440,9 +440,10 @@ def runPathfinding(pars: Dict[str, Any]) -> List[List[Tuple[int, int]]]:
 
 if __name__ == "__main__":
 
+    points = 10
     evo_parameters = dict(
         max_runs=3,
-        points_amount=11,
+        points_amount=points,
         export_name="queried",
         query="10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)",
     )
@@ -460,6 +461,8 @@ if __name__ == "__main__":
         load_fname_facts="facts_init",
         load_fname_rules="rules",
         step_by_step=True,
+        facts_amount=points+1,
+        facts_random_order=True,
     )
 
     evo.runEvolution(evo_parameters)
@@ -467,5 +470,6 @@ if __name__ == "__main__":
     chain.runProduction(chain_parameters)
 
 
-# ToDo: Add numbered steps
-# ToDo: Create tests -> optimize code with advanced techniques of python
+# ToDo: Create tests
+# ToDo: Optimize Python code with advanced techniques
+# ToDo: Create visualizations

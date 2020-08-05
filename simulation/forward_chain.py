@@ -1,4 +1,5 @@
 import collections as col
+import random
 import re
 from itertools import islice
 from typing import Any, Dict, List, Tuple
@@ -229,10 +230,16 @@ def runProduction(pars: Dict[str, Any]) -> None:
             load_fname_facts (str): name of file from which we load facts
             load_fname_rules (str): name of file from which we load rules
             step_by_step (bool): entering one fact by each Production run
+            facts_amount (int): number of facts we want to load=points
+            facts_random_order (bool): shuffle loaded facts
     """
 
     rules = loadRules(pars["load_fname_rules"])
     facts = loadFacts(pars["load_fname_facts"])
+    if pars['facts_random_order']:
+        random.shuffle(facts)
+    if pars['facts_amount'] < len(facts):
+        facts = facts[:pars['facts_amount']]
 
     if pars["step_by_step"]:
         new_facts = []  # type: List[str]
@@ -294,6 +301,8 @@ if __name__ == "__main__":
         load_fname_facts="facts_init",
         load_fname_rules="rules",
         step_by_step=True,
+        facts_amount=11,
+        facts_random_order=True,
     )
 
     runProduction(chain_parameters)
