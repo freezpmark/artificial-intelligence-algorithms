@@ -22,15 +22,15 @@ def loadRules(fname_rules: str) -> List[Any]:
     Rules = col.namedtuple("Rule", "name conds acts")
     rules = []
 
-    # must contain non-whitespace character
-    # must contain ?X in each comma seperated statement
-    # must contain remove/add/message and ?X in each comma seperated statement
+    # non-whitespace character
+    # ?X in each comma seperated statement
+    # remove/add/message and ?<any word char> in each comma seperated statement
+    # instead of ".*?," we could use "[^,]*,", or combine it "[^,]*?,"
     patterns = [
         re.compile(r"\S+"),
         re.compile(r"((\?[A-Z]+)[^,]*, )*.*\?[A-Z].*"),
         re.compile(
-            r"(((add)|(remove)|(message)) .*\?[A-Z][^,]*, )*"
-            r"((add)|(remove)|(message)).*\?[A-Z].*"
+            r"((add|remove|message).*\?\w.*?, )*(add|remove|message).*\?\w.*"
         ),
     ]
     with open("simulation/knowledge/" + fname_rules + ".txt") as f1:

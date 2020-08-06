@@ -396,6 +396,7 @@ def createWalls(query: str, export_name: str, show: bool = False) -> str:
     """
 
     walled_map = []
+    # re does not validate () coors whether they are within boundaries
     if re.search(r"[0-9]+x[0-9]+(\ \([0-9]+,[0-9]+\))+$", query):
         query_list = query.split()
         rows, cols = map(int, query_list[0].split("x"))
