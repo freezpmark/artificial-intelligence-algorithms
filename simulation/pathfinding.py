@@ -3,6 +3,7 @@ from copy import deepcopy as dcopy
 from itertools import combinations, permutations
 from sys import maxsize
 from typing import Any, Dict, FrozenSet, List, Tuple, Union
+
 import evolution as evo
 import forward_chain as chain
 
