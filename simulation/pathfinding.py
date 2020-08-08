@@ -397,10 +397,7 @@ def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
     """
 
     for i, path in enumerate(paths, 1):
-        print(f"{i}: ", end=" ")
-        for step in path:
-            print(step, end=" ")
-        print()
+        print(f"{i}: ", *path)
 
     print("Cost: " + str(distance) + "\n")
 

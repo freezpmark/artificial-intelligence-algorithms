@@ -165,8 +165,8 @@ def rakeMap(
         Tuple[int, List[List[int]]]: (amount of unraked spots, terrained map)
     """
 
-    rows, cols = shape[0], shape[1]
-    half_perimeter = shape[0] + shape[1]
+    rows, cols = shape
+    half_perimeter = sum(shape)
     UNRAKED = 0
     parents = {}  # type: Dict[Any, Any]
     pos = 0  # type: Any
