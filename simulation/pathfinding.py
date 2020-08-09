@@ -30,8 +30,8 @@ class Node:
 class Map:
     def __init__(self, fname) -> None:
         self.fname = ""  # type: str
-        self.__width = 0  # type: int
-        self.__height = 0  # type: int
+        self._width = 0  # type: int
+        self._height = 0  # type: int
         self.nodes = {}  # type: Dict[Tuple[int, int], Node]
         self.properties = {}  # type: Dict[str, Any]
         self.__loadMap(fname)
@@ -63,8 +63,8 @@ class Map:
             self.fname = fname
             self.nodes = nodes
             self.properties = properties
-            self.__height = i + 1
-            self.__width = j + 1
+            self._height = i + 1
+            self._width = j + 1
 
     def __getitem__(self, pos):
         assert len(pos) == 2, "Coordinate must have two values."
@@ -74,11 +74,11 @@ class Map:
 
     @property
     def width(self):
-        return self.__width
+        return self._width
 
     @property
     def height(self):
-        return self.__height
+        return self._height
 
 
 def getMoves(query: str) -> List[Tuple[int, int]]:
