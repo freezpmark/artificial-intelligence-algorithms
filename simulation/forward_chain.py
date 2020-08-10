@@ -288,8 +288,6 @@ def runForwardChain(
 
         applied_fact, facts, msgs = applyActions(actions_appliable, facts)
         applied_facts.append(applied_fact)
-        # for msg in msgs:
-        #     print("MESSAGE:", msg)
 
     return applied_facts, facts
 
