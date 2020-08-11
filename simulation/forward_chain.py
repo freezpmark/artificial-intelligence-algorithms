@@ -236,10 +236,10 @@ def runProduction(pars: Dict[str, Any]) -> None:
 
     rules = loadRules(pars["load_fname_rules"])
     facts = loadFacts(pars["load_fname_facts"])
-    if pars['facts_random_order']:
+    if pars["facts_random_order"]:
         random.shuffle(facts)
-    if pars['facts_amount'] < len(facts):
-        facts = facts[:pars['facts_amount']]
+    if pars["facts_amount"] < len(facts):
+        facts = facts[: pars["facts_amount"]]
 
     if pars["step_by_step"]:
         new_facts = []  # type: List[str]
@@ -253,7 +253,7 @@ def runProduction(pars: Dict[str, Any]) -> None:
         found_actions, new_facts = runForwardChain(
             facts, rules, pars["save_fname_facts"]
         )
-        dict_facts = {'All steps at once': found_actions}
+        dict_facts = {"All steps at once": found_actions}
 
     for i, fact in enumerate(dict_facts, 1):
         print(f"{str(i)}:  {fact} -> " + ", ".join(dict_facts[fact]))

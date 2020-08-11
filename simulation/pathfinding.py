@@ -459,7 +459,7 @@ if __name__ == "__main__":
         load_fname_facts="facts_init",
         load_fname_rules="rules",
         step_by_step=True,
-        facts_amount=points+1,
+        facts_amount=points + 1,
         facts_random_order=True,
     )
 
