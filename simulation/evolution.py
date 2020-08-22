@@ -2,7 +2,7 @@ import copy
 import random
 import re
 import time
-from typing import Any, Dict, Generator, List, Tuple, TypedDict
+from typing import Any, Dict, Generator, List, Tuple
 
 
 def evolutionize(
@@ -483,27 +483,28 @@ def createProperties(
     return ""
 
 
-def runEvolution(
-    max_runs: int, points_amount: int, export_name: str, query: str
-) -> None:
+def runEvolution(pars: Dict[str, Any]) -> None:
     """Runs evolution algorithm to create and save the maps into text file.
 
     Args:
-        max_runs (int): max number of attempts to find a solution
-        points_amount (int): amount of destination points to visit
-        export_name (str): name of the file that is going to be created
-        query (str): contains size of map and tuple coordinates of walls
-            example: "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
+        pars (Dict[str, Any]): parameters:
+            max_runs: (int): max number of attempts to find a solution
+            points_amount (int): amount of destination points to visit
+            export_name (str): name of the file that is going to be created
+            query (str): contains size of map and tuple coordinates of walls
+                example: "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
     """
 
     # create set of maps
-    import_name = createWalls(query, export_name)
-    import_name = createTerrain(max_runs, import_name)
+    import_name = createWalls(pars["query"], pars["export_name"])
+    import_name = createTerrain(pars["max_runs"], import_name)
     if not import_name:
         print("Could not find a solution!")
         return
 
-    import_name = createProperties(points_amount, import_name, show=True)
+    import_name = createProperties(
+        pars["points_amount"], import_name, show=True
+    )
 
     # ? to be interfaced
     import_walls = False
@@ -513,36 +514,30 @@ def runEvolution(
     if import_walls:
         import_name = "queried_wal"
         export_name = "Wimported"
-        import_name = createTerrain(max_runs, import_name, export_name)
+        import_name = createTerrain(pars["max_runs"], import_name, export_name)
         if not import_name:
             print("Could not find a solution!")
-            return
-        import_name = createProperties(points_amount, import_name, export_name)
+
+        import_name = createProperties(
+            pars["points_amount"], import_name, export_name
+        )
 
     # create a new properties map from previous created terrained map
     if import_terrain:
         import_name = "Wimported_ter"
         export_name = "Timported"
-        import_name = createProperties(points_amount, import_name, export_name)
+        import_name = createProperties(
+            pars["points_amount"], import_name, export_name
+        )
 
 
 if __name__ == "__main__":
-
-    pars = TypedDict(
-        "pars",
-        {
-            "max_runs": int,
-            "points_amount": int,
-            "export_name": str,
-            "query": str,
-        },
-    )
 
     evo_parameters = dict(
         max_runs=1,
         points_amount=11,
         export_name="queried",
         query="10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)",
-    )  # type: pars
+    )
 
-    runEvolution(**evo_parameters)
+    runEvolution(evo_parameters)
