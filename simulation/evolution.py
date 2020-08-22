@@ -516,6 +516,7 @@ def runEvolution(pars: Dict[str, Any]) -> None:
         import_name = createTerrain(max_runs, import_name, export_name)
         if not import_name:
             print("Could not find a solution!")
+            return
         import_name = createProperties(points_amount, import_name, export_name)
 
     # create a new properties map from previous created terrained map

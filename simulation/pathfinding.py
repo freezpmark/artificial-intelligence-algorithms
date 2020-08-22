@@ -2,7 +2,7 @@ import heapq
 from copy import deepcopy as dcopy
 from itertools import combinations, permutations
 from sys import maxsize
-from typing import Any, Dict, FrozenSet, List, Tuple, Union
+from typing import Any, Dict, FrozenSet, List, Tuple
 
 import evolution as evo
 import forward_chain as chain
@@ -61,10 +61,10 @@ class Map:
 
         if all(properties.values()) and len(properties["points"]) > 1:
             self.fname = fname
-            self.nodes = nodes
-            self.properties = properties
             self._height = i + 1
             self._width = j + 1
+            self.nodes = nodes
+            self.properties = properties
 
     def __getitem__(self, pos):
         assert len(pos) == 2, "Coordinate must have two values."
@@ -82,21 +82,23 @@ class Map:
 
 
 def getMoves(query: str) -> List[Tuple[int, int]]:
-    """Gets moving directions. Manhattan type is set by default, to extend
-    it with diagonal moves use "D" as first character in the query.
+    """Gets moving options.
 
     Args:
-        query (str): first character determines the type of movement directions
+        query (str): determines the type of movement options
+            ("M" - Manhattan, "D" - Diagonal + Manhattan)
 
     Returns:
         List[Tuple[int, int]]: tuples of x, y coordinate movement options
     """
 
     moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    if query[0] == "D":
-        moves.extend([(-1, -1), (-1, 1), (1, -1), (1, 1)])
+    if query == "M":
+        return moves
+    elif query == "D":
+        return moves + [(-1, -1), (-1, 1), (1, -1), (1, 1)]
 
-    return moves
+    return []
 
 
 def unpassable(neighbor: Tuple[int, int], data: Map):
@@ -129,12 +131,12 @@ def dijkstra(
         data (Map): contains information about the map
         start (Tuple[int, int]): starting position
         moves (List[Tuple[int, int]]): tuples of movement options
-        climb (bool): climbing distance approach, distance to next position
-            is measured as abs(current terrain number - next terrain number)
+        climb (bool): Climbing distance approach. If True, distance is measured
+            with abs(current terrain number - next terrain number)
 
     Returns:
-        Map: contains distances between starting position and any destination
-            Access via Map[starting][destination].dist
+        Map: Contains distances from starting position to all destinations.
+            Access via Map[start][destination].dist
     """
 
     heap = []  # type: List[Node]
@@ -146,13 +148,14 @@ def dijkstra(
         for move in moves:
             neighbor = node.pos[0] + move[0], node.pos[1] + move[1]
             if not unpassable(neighbor, data):
-                if climb:
-                    dist_next = abs(node.terrain - data[neighbor].terrain + 1)
-                else:
-                    dist_next = data[neighbor].terrain
+                next_dist = (
+                    data[neighbor].terrain
+                    if not climb
+                    else abs(node.terrain - data[neighbor].terrain + 1)
+                ) + node.dist
 
-                if data[neighbor].dist > node.dist + dist_next:
-                    data[neighbor].dist = node.dist + dist_next
+                if data[neighbor].dist > next_dist:
+                    data[neighbor].dist = next_dist
                     data[neighbor].parent = node.pos
                     heapq.heappush(heap, data[neighbor])
 
@@ -173,12 +176,12 @@ def aStar(
         start (Tuple[int, int]): starting position
         dest (Tuple[int, int]): ending position
         moves (List[Tuple[int, int]]): tuples of movement options
-        climb (bool): climbing distance approach, distance to next position
-            is measured as abs(current terrain number - next terrain number)
+        climb (bool): Climbing distance approach. If True, distance is measured
+            with abs(current terrain number - next terrain number)
 
     Returns:
-        Map: contains distances between starting position and destination
-            Access via Map[starting][destination].dist
+        Map: Contains distance between starting position and destination.
+            Access via Map[start][destination].dist
     """
 
     open_list = []  # type: List[Node]
@@ -195,14 +198,16 @@ def aStar(
         for move in moves:
             neighbor = node.pos[0] + move[0], node.pos[1] + move[1]
             if not unpassable(neighbor, data) and neighbor not in close_list:
-                x = abs(data[neighbor].pos[0] - dest[0])
-                y = abs(data[neighbor].pos[1] - dest[1])
-                h = x + y
-                if climb:
-                    g = node.g + abs(node.terrain - data[neighbor].terrain + 1)
-                else:
-                    g = node.g + data[neighbor].terrain
+                h = abs(data[neighbor].pos[0] - dest[0]) + abs(
+                    data[neighbor].pos[1] - dest[1]
+                )
+                g = (
+                    data[neighbor].terrain
+                    if not climb
+                    else abs(node.terrain - data[neighbor].terrain + 1)
+                ) + node.g
                 f = g + h
+
                 if f < data[neighbor].dist:
                     data[neighbor].g = g
                     data[neighbor].h = h
@@ -215,45 +220,43 @@ def aStar(
 
 
 def naivePermutations(
-    pro_data: Dict[Tuple[int, int], Map], subset_size: Union[int, None] = 0
+    pro_data: Dict[Tuple[int, int], Map], subset_size: int
 ) -> Tuple[List[Any], int]:
     """Computes the distance between all possible combinations of properties in
     order to find the shortest paths.
 
     Args:
-        pro_data (Dict[Tuple[int, int], Map]): contains distances between
+        pro_data (Dict[Tuple[int, int], Map]): Contains distances between
             all properties. Access via Dict[starting][destination].dist
-        subset_size (int, optional): defines how many points we want to visit
+        subset_size (int): number of points to visit (more than 1)
 
     Returns:
         Tuple[List[Any], int]: (order of properties' coordinates, distance)
     """
 
     points, base, start = tuple(pro_data.values())[0].properties.values()
-    if subset_size is None or not 1 < subset_size <= len(points):
-        subset_size = len(points)
-    mini = maxsize
+    cost = maxsize
 
     for permutation in permutations(points, subset_size):
         distance = pro_data[start][base].dist
         for begin, finish in zip((base,) + permutation, permutation):
             distance += pro_data[begin][finish].dist
-        if distance < mini:
-            mini, order = distance, permutation
+        if distance < cost:
+            cost, pro_order = distance, permutation
 
-    return list((start, base) + order), mini
+    return list((start, base) + pro_order), cost
 
 
 def heldKarp(
-    pro_data: Dict[Tuple[int, int], Map], subset_size: Union[int, None] = 0
+    pro_data: Dict[Tuple[int, int], Map], subset_size: int
 ) -> Tuple[List[Any], int]:
     """Finds the shortest combination of paths between properties
     using Held Karp's algorithm.
 
     Args:
-        pro_data (Dict[Tuple[int, int], Map]): contains distances between
+        pro_data (Dict[Tuple[int, int], Map]): Contains distances between
             all properties. Access via Dict[starting][destination].dist
-        subset_size (int): defines how many points we want to visit
+        subset_size (int): number of points to visit (more than 1)
 
     Returns:
         Tuple[List[Any], int]: (order of properties' coordinates, distance)
@@ -261,8 +264,6 @@ def heldKarp(
 
     points, base, start = tuple(pro_data.values())[0].properties.values()
     points = frozenset(points)
-    if subset_size is None or not 1 < subset_size <= len(points):
-        subset_size = len(points)
 
     key = Tuple[Tuple[int, int], FrozenSet[int]]
     value = Tuple[int, Tuple[int, int]]
@@ -287,7 +288,7 @@ def heldKarp(
                         routes.append((cost, begin))
                     nodes[dest, combSet] = min(routes)
 
-    # get final destination and its parent to backtrack remaining properties
+    # get final destination and its parent
     com = []
     for i, node in enumerate(reversed(dict(nodes))):
         if i < len(points):
@@ -309,46 +310,45 @@ def heldKarp(
     return path[::-1], cost
 
 
-def noCombed(
-    pro_data: Dict[Tuple[int, int], Map], subset_size: int = 0
+def noComb(
+    pro_data: Dict[Tuple[int, int], Map], subset_size: int
 ) -> Tuple[List[Any], int]:
-    """Gets the shortest path between properties with zero or one point.
+    """Gets the shortest path between properties with 0 or 1 point.
 
     Args:
-        pro_data (Dict[Tuple[int, int], Map]): contains distances between
+        pro_data (Dict[Tuple[int, int], Map]): Contains distances between
             all properties. Access via Dict[starting][destination].dist
-        subset_size (int, optional): defines how many points we want to visit
-            (in this function either one or none)
+        subset_size (int): number of points to visit (0 or 1 in this case)
 
     Returns:
         Tuple[List[Any], int]: (order of properties' coordinates, distance)
     """
 
     points, base, start = tuple(pro_data.values())[0].properties.values()
-    order, dist = [start, base], pro_data[start][base].dist
+    pro_order, dist = [start, base], pro_data[start][base].dist
     if subset_size:
         point, dist_to_p = min([(p, pro_data[base][p].dist) for p in points])
-        order.append(point)
+        pro_order.append(point)
         dist += dist_to_p
 
-    return order, dist
+    return pro_order, dist
 
 
 def findShortestDistances(
     map_data: Map, moves: List[Tuple[int, int]], climb: bool
 ) -> Dict[Tuple[int, int], Map]:
-    """Finds the shortest distances between all properties:
-    points, base, start in the map using Dijkstra and A* algorithms.
+    """Finds shortest distances between all properties (points, base, start)
+    in the map using Dijkstra and A* algorithms.
 
     Args:
         map_data (Map): contains information about the map
         moves (List[Tuple[int, int]]): tuples of x, y coordinate movement opts
-        climb (bool): climbing distance approach, distance to next position
-            is measured as abs(current terrain number - next terrain number)
+        climb (bool): Climbing distance approach. If True, distance is measured
+            with abs(current terrain number - next terrain number)
 
     Returns:
-        Dict[Tuple[int, int], Map]: contains distances between all properties
-            Access via Dict[starting][destination].dist
+        Dict[Tuple[int, int], Map]: Contains distances between all properties.
+            Access via Dict[start][destination].dist
     """
 
     points, base, start = map_data.properties.values()
@@ -361,21 +361,21 @@ def findShortestDistances(
 
 
 def getPaths(
-    pro_data: Dict[Tuple[int, int], Map], order: List[Any]
+    pro_data: Dict[Tuple[int, int], Map], pro_order: List[Any]
 ) -> List[List[Tuple[int, int]]]:
     """Gets routes from ordered coordinates of properties via parent attribute.
 
     Args:
-        pro_data (Dict[Tuple[int, int], Map]): contains distances between
+        pro_data (Dict[Tuple[int, int], Map]): Contains distances between
             all properties. Access via Dict[starting][destination].dist
-        order (List[Any]): order of properties' coordinates
+        pro_order (List[Any]): order of properties' coordinates
 
     Returns:
-        List[List[Tuple[int, int]]]: Lists of paths between ordered properties
+        List[List[Tuple[int, int]]]: lists of paths between ordered properties
     """
 
     paths = []
-    for begin, finish in zip(order, order[1:]):
+    for begin, finish in zip(pro_order, pro_order[1:]):
         path = []
         while finish != begin:
             path.append(finish)
@@ -388,10 +388,10 @@ def getPaths(
 def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
     """Prints the order of paths between properties. Each line starts with
     order number followed by order of tuple coordinates that represent
-    the movement progression from start to destination property.
+    the movement progression from start to destination.
 
     Args:
-        paths (List[List[Tuple[int, int]]]): Lists of paths between
+        paths (List[List[Tuple[int, int]]]): lists of paths between
             ordered properties
         distance (int): total distance of solution
     """
@@ -403,20 +403,20 @@ def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
 
 
 def runPathfinding(pars: Dict[str, Any]) -> List[List[Tuple[int, int]]]:
-    """Finds a solution and prints it.
+    """Runs pathfinding algorithm on a map that is loaded from the text file.
 
     Args:
-        pars (Dict[str, Any]): parameters that contain these string values:
-            fname (string): name of the file without _pro.txt
-            movement (string): D - Diagonal, any - Manhattan
-            climb (bool): climbing distance approach
-            algorithm (string): NP - Naive Permutations, any - Held Karp
-            subset_size (None/int): number of points we want to visit
+        pars (Dict[str, Any]): parameters:
+            fname (string): name of the file to load (without _pro.txt)
+            movement (string): "M" - Manhattan, "D" - Diagonal + Manhattan
+            climb (bool): Climbing distance approach. If True, distance is
+                measured with abs(current terrain number - next terrain number)
+            algorithm (string): NP - Naive Permutations, HK - Held Karp
+            subset_size (Union[int, None], optional): number of points to visit
                 None means all
 
     Returns:
-        paths (List[List[Tuple[int, int]]]): Lists of paths between
-            ordered properties
+        List[List[Tuple[int, int]]]: lists of paths between ordered properties
     """
 
     moves = getMoves(pars["movement"])
@@ -430,9 +430,8 @@ def runPathfinding(pars: Dict[str, Any]) -> List[List[Tuple[int, int]]]:
     else:
         order, dist = heldKarp(pro_data, pars["subset_size"])
 
-    path = getPaths(pro_data, order)
+    printSolution(paths, dist)
 
-    printSolution(path, dist)
     return path
 
 
@@ -467,7 +466,7 @@ if __name__ == "__main__":
     runPathfinding(path_parameters)
     chain.runProduction(chain_parameters)
 
-
-# ToDo: Create tests
-# ToDo: Optimize Python code with advanced techniques
+# ToDo: Create validations types for parameters (test)
+# ToDo: Create pytest tests
+# ToDo: Create performance tests
 # ToDo: Create visualizations
