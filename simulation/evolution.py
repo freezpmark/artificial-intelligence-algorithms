@@ -2,7 +2,7 @@ import copy
 import random
 import re
 import time
-from typing import Any, Dict, Generator, List, Tuple
+from typing import Any, Dict, Generator, List, Tuple, TypedDict
 
 
 def evolutionize(
@@ -11,16 +11,13 @@ def evolutionize(
     """Runs evolutionary algorithm on a map with walls to fill it with terrain.
 
     Args:
-        map_list (List[List[int]]): 2D map array of 0 and 1 (walls) integers
+        map_list (List[List[int]]): 2D map of 0 and 1 (walls) integers
         max_runs (int): max number of attempts to find a solution with evo alg.
         print_stats (bool): turns on debug mode that prints stats and solution
 
     Returns:
-        List[List[int]]: 2D map array of various integers (wall being -1 now)
+        List[List[int]]: 2D map of various integers (wall being -1 now)
     """
-
-    if not map_list:
-        return map_list
 
     found_solution = False
     attempt_number = 1
@@ -43,19 +40,19 @@ def evolutionize(
         MAX_MUT_RATE = 0.80
         CROSS_RATE = 0.90
 
-        start_time = time.time()
-        gen_times = []
-        population = []
-        prev_max = 0
-
         # generating chromosomes for one population/generation
+        population = []
         genes = random.sample(range(1, genes_amount), genes_amount - 1)
         for _ in range(CHROMOSOMES):
             random.shuffle(genes)
             chromosome = [num * random.choice([-1, 1]) for num in genes]
             population.append(chromosome)
 
+        start_time = time.time()
+        gen_times = []
+
         # loop of generations
+        prev_max = 0
         mu_rate = MIN_MUT_RATE
         for i in range(GENERATIONS):
             generation_time = time.time()
@@ -63,13 +60,13 @@ def evolutionize(
             # evaluate all chromosomes and save the best one
             fit, fit_max, best_index = [], 0, 0
             for j in range(CHROMOSOMES):
-                unraked_amount, fills = rakeMap(
+                unraked_amount, filled_map = rakeMap(
                     population[j], copy.copy(map_tuple), shape
                 )
                 raked_amount = to_rake_amount - unraked_amount
                 fit.append(raked_amount)
                 if raked_amount > fit_max:
-                    best_index, fit_max, filled_map = j, raked_amount, fills
+                    best_index, fit_max, terr_map = j, raked_amount, filled_map
 
             if prev_max < fit_max:
                 print(f"Generation: {i+1},", end="\t")
@@ -144,7 +141,7 @@ def evolutionize(
             if not found_solution and attempt_number <= max_runs:
                 print(f"\nAttempt number {attempt_number}.")
 
-    return filled_map if found_solution else []
+    return terr_map if found_solution else []
 
 
 def rakeMap(
@@ -249,6 +246,7 @@ def rakeMap(
                         map_tuple[pos] = 0
                         break
 
+                # save the order num and parent, move by setting new pos
                 map_tuple[pos] = order
                 parents[pos] = parent
                 parent = pos
@@ -260,13 +258,13 @@ def rakeMap(
     unraked_amount = 0
     row_number = -1
 
-    for i, fill in enumerate(map_tuple.values()):
-        if fill == UNRAKED:
+    for i, order_num in enumerate(map_tuple.values()):
+        if order_num == UNRAKED:
             unraked_amount += 1
         if i % cols == 0:
             row_number += 1
             filled_map.append([])
-        filled_map[row_number].append(fill)
+        filled_map[row_number].append(order_num)
 
     return unraked_amount, filled_map
 
@@ -277,23 +275,20 @@ def generateProperties(
     """Adds properties to terrained map.
 
     Args:
-        map_list (List[List[str]]): 2D map array of terrained map
-            that is going to be propertied
+        map_list (List[List[str]]): 2D terrained map that will be propertied
         points_amount (int): amount of destination points to visit
 
     Returns:
-        List[List[str]]: 2D propertied map array
+        List[List[str]]: 2D propertied map
     """
 
     def positionGenerator(
         map_terrained: List[List[str]],
     ) -> Generator[Tuple[int, int], None, None]:
-        """Generator of free positions that
-        are going to be used for properties.
+        """Generator of free positions for properties.
 
         Args:
-            map_terrained (List[List[str]]): 2D map array
-                that is going to be propertied
+            map_terrained (List[List[str]]): 2D terrained map
 
         Yields:
             Generator[Tuple[int, int], None, None]: coordinate of free position
@@ -331,12 +326,12 @@ def saveMap(
     show: bool = False,
     spacing: str = "{:^3}",
 ) -> None:
-    """Saves a map into text file. It can also print the map into console.
+    """Saves a map into file. It can also print the map into console.
 
     Args:
-        map_list (List[List[str]]): 2D map array of the map
-        import_name (str): name of the text file we're saving the map into
-        show (bool): prints the created terrain into console
+        map_list (List[List[str]]): 2D map
+        import_name (str): name of the file we're saving the map into
+        show (bool): Print saved map into console. Defaults to False.
         spacing (str, optional): spacing between numbers. Defaults to "{:^3}".
     """
 
@@ -358,7 +353,7 @@ def loadMap(import_name: str) -> List[List[str]]:
         import_name (str): name of the file to load (with _wal/ter/pro suffix)
 
     Returns:
-        List[List[str]]: a 2D map represented with strings
+        List[List[str]]: 2D map
     """
 
     map_ = []
@@ -383,13 +378,13 @@ def loadMap(import_name: str) -> List[List[str]]:
 
 def createWalls(query: str, export_name: str, show: bool = False) -> str:
     """Creates a file that represents unterrained map with walls.
-    Map is filled with "1" being walls and "0" being walkable places
+    Map is filled with "1" being walls and "0" being walkable places.
 
     Args:
         query (str): contains size of the map and tuple coordinates of walls
             example: "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
         export_name (str): root name of file that is going to be created
-        show (bool): prints the created terrain into console
+        show (bool): Print created walls into console. Defaults to False.
 
     Returns:
         str: name of the created file (with _wal at the end)
@@ -399,9 +394,9 @@ def createWalls(query: str, export_name: str, show: bool = False) -> str:
     if re.search(r"[0-9]+x[0-9]+(\ \([0-9]+,[0-9]+\))+$", query):
         query_list = query.split()
         rows, cols = map(int, query_list[0].split("x"))
-        walled_map = [["0"] * cols for _ in range(rows)]
-
         walls = {eval(coordinate) for coordinate in query_list[1:]}
+
+        walled_map = [["0"] * cols for _ in range(rows)]
         for wall in walls:
             try:
                 walled_map[wall[0]][wall[1]] = "1"
@@ -425,16 +420,18 @@ def createTerrain(
     Args:
         max_runs (int): max number of attempts to find a solution with evo alg.
         import_name (str): name of the imported file (with _wal at the end)
-        export_name (str, optional): name of file that is going to be created
+        export_name (str, optional): Name of file that is going to be created
             (with _ter at the end).
             Defaults to "" (root name of imported file will be used instead).
-        show (bool): prints the created terrain into console
+        show (bool): Print created terrain into console. Defaults to False.
 
     Returns:
         str: name of the created file (with _ter at the end)
     """
 
     walled_map = loadMap(import_name)
+    if not walled_map:
+        return ""
 
     walled_map_int = [[int(i) for i in subarray] for subarray in walled_map]
     walled_map_int = evolutionize(walled_map_int, max_runs, True)
@@ -462,16 +459,18 @@ def createProperties(
     Args:
         points_amount (int): amount of destination points to visit
         import_name (str): name of the imported file (with _ter at the end)
-        export_name (str, optional): name of file that is going to be created
+        export_name (str, optional): Name of file that is going to be created
             (with _pro at the end).
             Defaults to "" (root name of imported file will be used instead).
-        show (bool): prints the created terrain into console
+        show (bool): Print created properties into console. Defaults to False.
 
     Returns:
         str: name of the created file (with _pro at the end)
     """
 
     map_terrained = loadMap(import_name)
+    if not map_terrained:
+        return ""
 
     map_propertied = generateProperties(map_terrained, points_amount)
 
@@ -484,58 +483,66 @@ def createProperties(
     return ""
 
 
-def runEvolution(pars: Dict[str, Any]) -> None:
-    """Runs evolution algorithm and creates maps.
+def runEvolution(
+    max_runs: int, points_amount: int, export_name: str, query: str
+) -> None:
+    """Runs evolution algorithm to create and save the maps into text file.
 
     Args:
-        pars (Dict[str, Any]): parameters that contain these string values:
-            max_runs: (int): max number of attempts to find a solution
-            points_amount (int): amount of destination points to visit
-            export_name (str): name of the file that is going to be created
-            query (str): contains size of map and tuple coordinates of walls
+        max_runs (int): max number of attempts to find a solution
+        points_amount (int): amount of destination points to visit
+        export_name (str): name of the file that is going to be created
+        query (str): contains size of map and tuple coordinates of walls
             example: "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
     """
 
     # create set of maps
-    import_name = createWalls(pars["query"], pars["export_name"])
-    import_name = createTerrain(pars["max_runs"], import_name)
+    import_name = createWalls(query, export_name)
+    import_name = createTerrain(max_runs, import_name)
     if not import_name:
         print("Could not find a solution!")
+        return
 
-    import_name = createProperties(
-        pars["points_amount"], import_name, show=True
-    )
+    import_name = createProperties(points_amount, import_name, show=True)
 
-    # to be interfaced
+    # ? to be interfaced
     import_walls = False
     import_terrain = False
+
+    # create a new set of maps from previously created walled map
     if import_walls:
-        # create a new set of maps from previously created walled map
         import_name = "queried_wal"
         export_name = "Wimported"
-        import_name = createTerrain(pars["max_runs"], import_name, export_name)
+        import_name = createTerrain(max_runs, import_name, export_name)
         if not import_name:
             print("Could not find a solution!")
+            return
+        import_name = createProperties(points_amount, import_name, export_name)
 
-        import_name = createProperties(
-            pars["points_amount"], import_name, export_name
-        )
+    # create a new properties map from previous created terrained map
     if import_terrain:
-        # create a new properties map from previous created terrained map
         import_name = "Wimported_ter"
         export_name = "Timported"
-        import_name = createProperties(
-            pars["points_amount"], import_name, export_name
-        )
+        import_name = createProperties(points_amount, import_name, export_name)
 
 
 if __name__ == "__main__":
 
+    pars = TypedDict(
+        "pars",
+        {
+            "max_runs": int,
+            "points_amount": int,
+            "export_name": str,
+            "query": str,
+        },
+    )
+
     evo_parameters = dict(
-        max_runs=3,
+        max_runs=1,
         points_amount=11,
         export_name="queried",
         query="10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)",
-    )
+    )  # type: pars
 
-    runEvolution(evo_parameters)
+    runEvolution(**evo_parameters)
