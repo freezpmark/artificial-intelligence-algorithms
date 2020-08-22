@@ -419,20 +419,39 @@ def runPathfinding(pars: Dict[str, Any]) -> List[List[Tuple[int, int]]]:
         List[List[Tuple[int, int]]]: lists of paths between ordered properties
     """
 
-    moves = getMoves(pars["movement"])
-    map_data = Map(pars["fname"])
-    pro_data = findShortestDistances(map_data, moves, pars["climb"])
+    fname, movement, climb, algorithm, subset_size = pars.values()
 
-    if pars["subset_size"] is not None and pars["subset_size"] < 2:
-        order, dist = noCombed(pro_data, pars["subset_size"])
-    elif pars["algorithm"] == "NP":
-        order, dist = naivePermutations(pro_data, pars["subset_size"])
-    else:
-        order, dist = heldKarp(pro_data, pars["subset_size"])
+    map_data = Map(fname)
+    if not map_data.properties:
+        print("Invalid map!")
+        return []
+
+    moves = getMoves(movement)
+    if not moves:
+        print("Invalid movement type!")
+        return []
+
+    if subset_size is None:
+        subset_size = len(map_data.properties["points"])
+    elif subset_size < 0:
+        print("Invalid subset size!")
+        return []
+
+    if subset_size < 2:
+        algorithm = "NC"
+    if algorithm not in ("NC", "NP", "HK"):
+        print("Invalid algorithm input!")
+        return []
+
+    findShortestCombo = {"NC": noComb, "NP": naivePermutations, "HK": heldKarp}
+
+    pro_data = findShortestDistances(map_data, moves, climb)
+    pro_order, dist = findShortestCombo[algorithm](pro_data, subset_size)
+    paths = getPaths(pro_data, pro_order)
 
     printSolution(paths, dist)
 
-    return path
+    return paths
 
 
 if __name__ == "__main__":
