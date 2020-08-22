@@ -495,16 +495,15 @@ def runEvolution(pars: Dict[str, Any]) -> None:
                 example: "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
     """
 
+    max_runs, points_amount, export_name, query = pars.values()
+
     # create set of maps
-    import_name = createWalls(pars["query"], pars["export_name"])
-    import_name = createTerrain(pars["max_runs"], import_name)
+    import_name = createWalls(query, export_name)
+    import_name = createTerrain(max_runs, import_name)
     if not import_name:
         print("Could not find a solution!")
         return
-
-    import_name = createProperties(
-        pars["points_amount"], import_name, show=True
-    )
+    import_name = createProperties(points_amount, import_name, show=True)
 
     # ? to be interfaced
     import_walls = False
@@ -514,21 +513,16 @@ def runEvolution(pars: Dict[str, Any]) -> None:
     if import_walls:
         import_name = "queried_wal"
         export_name = "Wimported"
-        import_name = createTerrain(pars["max_runs"], import_name, export_name)
+        import_name = createTerrain(max_runs, import_name, export_name)
         if not import_name:
             print("Could not find a solution!")
-
-        import_name = createProperties(
-            pars["points_amount"], import_name, export_name
-        )
+        import_name = createProperties(points_amount, import_name, export_name)
 
     # create a new properties map from previous created terrained map
     if import_terrain:
         import_name = "Wimported_ter"
         export_name = "Timported"
-        import_name = createProperties(
-            pars["points_amount"], import_name, export_name
-        )
+        import_name = createProperties(points_amount, import_name, export_name)
 
 
 if __name__ == "__main__":
