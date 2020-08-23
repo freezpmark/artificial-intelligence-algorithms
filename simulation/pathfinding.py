@@ -485,7 +485,5 @@ if __name__ == "__main__":
     runPathfinding(path_parameters)
     chain.runProduction(chain_parameters)
 
-# ToDo: Create validations types for parameters (test)
-# ToDo: Create pytest tests
-# ToDo: Create performance tests
-# ToDo: Create visualizations
+# ToDo: Pytest tests (validations types for parameters)
+# ToDo: Gif visualization
