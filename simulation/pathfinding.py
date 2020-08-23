@@ -272,21 +272,21 @@ def heldKarp(
     # get the shortest combinations of all sizes
     for row in range(subset_size):
         for comb in combinations(points, row):
-            combSet = frozenset(comb)
-            for dest in points - combSet:
+            comb_set = frozenset(comb)
+            for dest in points - comb_set:
                 routes = []
-                if combSet == frozenset():  # case for base starting
+                if comb_set == frozenset():  # case for base starting
                     cost = (
                         pro_data[base][dest].dist + pro_data[start][base].dist
                     )
                     nodes[dest, frozenset()] = cost, base
                 else:
-                    for begin in combSet:  # single val from set
-                        sub_comb = combSet - frozenset({begin})
+                    for begin in comb_set:  # single val from set
+                        sub_comb = comb_set - frozenset({begin})
                         prev_cost = nodes[begin, sub_comb][0]
                         cost = pro_data[begin][dest].dist + prev_cost
                         routes.append((cost, begin))
-                    nodes[dest, combSet] = min(routes)
+                    nodes[dest, comb_set] = min(routes)
 
     # get final destination and its parent
     com = []
