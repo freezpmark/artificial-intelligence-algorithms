@@ -300,7 +300,7 @@ def heldKarp(
             cost, next_step = val
             break
 
-    # backtracking remaining properties
+    # backtrack remaining properties
     for _ in range(subset_size - 1):
         path.append(next_step)
         points -= {next_step}
