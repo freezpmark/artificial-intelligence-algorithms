@@ -12,5 +12,6 @@
     "python.formatting.blackArgs": ["--line-length", "79"],
     "python.formatting.blackPath": "black",
     "python.formatting.provider": "black",
-    "git.allowForcePush": true
+    "git.allowForcePush": true,
+    "files.autoSave": "afterDelay"
 }
