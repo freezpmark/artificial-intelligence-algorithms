@@ -6,15 +6,14 @@ from typing import Any, Dict, List, Tuple
 
 
 def loadRules(fname_rules: str) -> List[Any]:
-    """Loads rules from the file. If rules are set wrong in the file,
-    it returns empty lists.
+    """Loads rules from the file.
 
     Args:
         fname_rules (str): name of file from which we load rules
 
     Returns:
         List[Any]: namedtuples with these attributes:
-            name - name of the rule
+            name - name of the rule (unused)
             conds - conditions to fulfil actions
             acts - actions (message, add or remove fact from the set of facts)
     """
@@ -25,7 +24,7 @@ def loadRules(fname_rules: str) -> List[Any]:
     # non-whitespace character
     # ?X in each comma seperated statement
     # remove/add/message and ?<any word char> in each comma seperated statement
-    # instead of ".*?," we could use "[^,]*,", or combine it "[^,]*?,"
+    # (instead of ".*?," we could use "[^,]*,", or combine it "[^,]*?,")
     patterns = [
         re.compile(r"\S+"),
         re.compile(r"((\?[A-Z]+)[^,]*, )*.*\?[A-Z].*"),
@@ -33,11 +32,11 @@ def loadRules(fname_rules: str) -> List[Any]:
             r"((add|remove|message).*\?\w.*?, )*(add|remove|message).*\?\w.*"
         ),
     ]
-    with open("simulation/knowledge/" + fname_rules + ".txt") as f1:
-        while rule := [line.rstrip("\n:") for line in islice(f1, 4)]:
+    with open("simulation/knowledge/" + fname_rules + ".txt") as f:
+        while rule := [line.rstrip("\n:") for line in islice(f, 4)]:
             if rule.pop():
                 print("There is no empty line after rule!")
-            for i in range(len(Rules._fields)):  # ? validation in while
+            for i in range(len(Rules._fields)):
                 if not patterns[i].match(rule[i]):
                     print(Rules._fields[i], "field is set wrong!")
                     return []
@@ -63,21 +62,21 @@ def loadFacts(fname_facts: str) -> List[str]:
 
 
 def findActions(rules: List[Any], facts: List[str]) -> List[List[str]]:
-    """Finds all actions from given facts.
+    """Finds all actions from given facts according to given rules.
 
     Args:
         rules (List[Any]): namedtuples with these attributes:
-            name - name of the rule (is not used for any purpose)
-            conds - conditions for fulfilling rule's actions
+            name - name of the rule (unused)
+            conds - conditions to fulfil actions
             acts - actions (message, add or remove fact from the set of facts)
-        facts (List[str]): fact sentences
+        facts (List[str]): known fact sentences
 
     Returns:
         List[List[str]]: lists of actions that have been found from each rule
     """
 
-    actions_found = []
-    for rule in rules:  # LOOP over rules
+    found_actions = []
+    for rule in rules:  # loop over rules
         rule_acts = [act.split(" ", 1) for act in rule.acts.split(", ")]
         rule_acts_label = expand(rule.conds.split(), facts, {})
         for label in rule_acts_label:
@@ -89,63 +88,69 @@ def findActions(rules: List[Any], facts: List[str]) -> List[List[str]]:
                         action = action.replace(key, label[key])
                 actions.append(type_ + " " + action)
 
-            actions_found.append(actions)
+            found_actions.append(actions)
 
-    return actions_found
+    return found_actions
 
 
 def removeDuplicates(
-    actions_found: List[List[str]], facts: List[str]
+    actions: List[List[str]], facts: List[str]
 ) -> List[List[str]]:
     """Removes the outcome of actions that were already present in the facts.
 
     Args:
-        actions_found (List[List[str]]): lists of actions that have been
+        actions (List[List[str]]): lists of actions that have been
             found from each rule
-        facts (List[str]): fact sentences
+        facts (List[str]): known fact sentences
 
     Returns:
         List[List[str]]: lists of appliable actions
     """
 
     i = 0
-    for _ in range(len(actions_found)):
-        message = True  # happens when there wasnt a duplicate in prev acts
+    # loop over each rule
+    for _ in range(len(actions)):
+        message = True
         j = 0
-        for _ in range(len(actions_found[i])):
-            type_, act = actions_found[i][j].split(" ", 1)
+
+        # loop over actions found from each rule
+        for _ in range(len(actions[i])):
+            type_, act = actions[i][j].split(" ", 1)
             if (
                 (type_ == "add" and act in facts)
                 or (type_ == "remove" and act not in facts)
                 or (type_ == "message" and not message)
             ):
-                del actions_found[i][j]
-                message = False
+                del actions[i][j]
+                message = False  # remove msg act if prev. act was deleted
             else:
                 j += 1
-        if not actions_found[i]:
-            del actions_found[i]
+
+        # remove empty set of actions
+        if not actions[i]:
+            del actions[i]
         else:
             i += 1
 
-    return actions_found
+    return actions
 
 
 def applyActions(
-    actions_appliable: List[List[str]], facts: List[str]
+    appliable_actions: List[List[str]], facts: List[str]
 ) -> Tuple[str, List[str], List[str]]:
-    """Applies list of actions that are first in the queue.
+    """Applies list of actions that is first in the queue.
 
     Args:
-        actions_appliable (List[List[str]]): lists of appliable actions
-        facts (List[str]): fact sentences
+        appliable_actions (List[List[str]]): lists of appliable actions
+        facts (List[str]): known fact sentences
 
     Returns:
-        Tuple[str, List[str], List[str]]: applied act, fact sentences, messages
+        Tuple[str, List[str], List[str]]: (applied action,
+            known fact sentences, messages)
     """
 
     messages = []
-    for action in actions_appliable[0]:
+    for action in appliable_actions[0]:
         type_, act = action.split(" ", 1)
         if type_ == "add":
             facts.append(act)
@@ -160,12 +165,12 @@ def applyActions(
 def expand(
     conds: List[str], facts: List[str], label: Dict[str, str]
 ) -> List[Dict[str, str]]:
-    """Loops over conditions of a rule recursively and finds all
+    """Loops over conditions of rule recursively and finds all
     condition-matching labels from given facts.
 
     Args:
         conds (List[str]): conditions for fulfilling rule's actions
-        facts (List[str]): fact sentences
+        facts (List[str]): known fact sentences
         label (Dict[str, str]): represent entities (?X -> <entity from fact>)
 
     Returns:
@@ -176,7 +181,7 @@ def expand(
         return [label]
 
     labels = []
-    # LOOP over facts
+    # loop over facts
     for fact_str in facts:
         fact_list = fact_str.split()
         tmp_label = {}
@@ -210,10 +215,10 @@ def expand(
 
 
 def saveFacts(facts: List[str], save_fname_facts: str) -> None:
-    """Save facts into text file.
+    """Saves all facts into text file.
 
     Args:
-        facts (List[List[str]]): list of new found facts
+        facts (List[List[str]]): list of new and old facts
         save_fname_facts (str): name of the file
     """
 
@@ -222,15 +227,15 @@ def saveFacts(facts: List[str], save_fname_facts: str) -> None:
 
 
 def runProduction(pars: Dict[str, Any]) -> None:
-    """Finds a solution and saves it to text file.
+    """Sets parameters for running rule-based system with forward chaining.
 
     Args:
-        pars (Dict[str, Any]): parameters that contain these string values:
+        pars (Dict[str, Any]): parameters:
             save_fname_facts (str): name of file into which facts will be saved
             load_fname_facts (str): name of file from which we load facts
             load_fname_rules (str): name of file from which we load rules
-            step_by_step (bool): entering one fact by each Production run
-            facts_amount (int): number of facts we want to load=points
+            step_by_step (bool): entering one fact by each production run
+            facts_amount (int): number of facts we want to load (points)
             facts_random_order (bool): shuffle loaded facts
     """
 
@@ -243,50 +248,51 @@ def runProduction(pars: Dict[str, Any]) -> None:
 
     if pars["step_by_step"]:
         new_facts = []  # type: List[str]
-        dict_facts = {}
-        for i, fact in enumerate(facts):
-            found_actions, new_facts = runForwardChain(
-                new_facts + [fact], rules, pars["save_fname_facts"]
+        stepped_facts = {}
+        for i, key_fact in enumerate(facts):
+            applied_facts, new_facts = runForwardChain(
+                new_facts + [key_fact], rules, pars["save_fname_facts"]
             )
-            dict_facts[fact] = found_actions
+            stepped_facts[key_fact] = applied_facts
     else:
-        found_actions, new_facts = runForwardChain(
+        applied_facts, new_facts = runForwardChain(
             facts, rules, pars["save_fname_facts"]
         )
-        dict_facts = {"All steps at once": found_actions}
+        stepped_facts = {"All steps at once": applied_facts}
 
-    for i, fact in enumerate(dict_facts, 1):
-        print(f"{str(i)}:  {fact} -> " + ", ".join(dict_facts[fact]))
+    for i, fact in enumerate(stepped_facts, 1):
+        print(f"{str(i)}:  {fact} -> " + ", ".join(stepped_facts[fact]))
 
 
 def runForwardChain(
     facts: List[str], rules: List[Any], save_fname_facts: str
 ) -> Tuple[List[str], List[str]]:
-    """Finds a solution and saves it to the text file.
+    """Runs forward chaining to discover all possible facts. Discovered
+    new facts along with already known facts will be saved to text file.
 
     Args:
-        facts (List[str]): fact sentences
+        facts (List[str]): known fact sentences
         rules (List[Any]): namedtuples with these attributes:
-            name - name of the rule
+            name - name of the rule (unused)
             conds - conditions to fulfil actions
             acts - actions (message, add or remove fact from the set of facts)
         save_fname_facts (str): name of the file into which facts will be saved
 
     Returns:
-        Tuple[List[str], List[str]]: facts we found, all facts
+        Tuple[List[str], List[str]]: (applied facts, all facts)
     """
 
-    # LOOP over to-be FACTS
+    # loop over applied_facts (to-be facts)
     applied_facts = []
     while True:
-        actions_found = findActions(rules, facts)
-        actions_appliable = removeDuplicates(actions_found, facts)
+        found_actions = findActions(rules, facts)
+        appliable_actions = removeDuplicates(found_actions, facts)
 
-        if not actions_appliable:
+        if not appliable_actions:
             saveFacts(facts, save_fname_facts)
             break
 
-        applied_fact, facts, msgs = applyActions(actions_appliable, facts)
+        applied_fact, facts, msgs = applyActions(appliable_actions, facts)
         applied_facts.append(applied_fact)
 
     return applied_facts, facts
