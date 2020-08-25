@@ -5,9 +5,28 @@ import time
 from typing import Any, Dict, Generator, List, Tuple
 
 
+def listToDictTuple(map_list: List[List[int]]) -> Dict[Tuple[int, int], int]:
+    """Transitions map list to dictionary of tuples as keys and values
+    as terrain.
+
+    Args:
+        map_list (List[List[int]]): 2D map of 0 and 1 (walls) integers
+
+    Returns:
+        Dict[Tuple[int, int], int]: map defined by tuples of (x, y)
+            being as coordinate keys
+    """
+
+    return {
+        (i, j): -col
+        for i, row in enumerate(map_list)
+        for j, col in enumerate(row)
+    }
+
+
 def evolutionize(
     map_list: List[List[int]], max_runs: int, print_stats: bool
-) -> List[List[int]]:
+) -> Tuple[List[List[int]], str]:
     """Runs evolutionary algorithm on a map with walls to fill it with terrain.
 
     Args:
@@ -16,19 +35,15 @@ def evolutionize(
         print_stats (bool): turns on debug mode that prints stats and solution
 
     Returns:
-        List[List[int]]: 2D map of various integers (wall being -1 now)
+        Tuple[List[List[int]], str]: (2D map of various integers
+            (wall being -1 now), chromosome string)
     """
 
     found_solution = False
     attempt_number = 1
 
     while not found_solution and attempt_number <= max_runs:
-        map_tuple = {
-            (i, j): -col
-            for i, row in enumerate(map_list)
-            for j, col in enumerate(row)
-        }
-
+        map_tuple = listToDictTuple(map_list)
         shape = len(map_list), len(map_list[0])
         rocks_amount = sum(val != 0 for val in map_tuple.values())
         to_rake_amount = shape[0] * shape[1] - rocks_amount
@@ -60,8 +75,8 @@ def evolutionize(
             # evaluate all chromosomes and save the best one
             fit, fit_max, best_index = [], 0, 0
             for j in range(CHROMOSOMES):
-                unraked_amount, filled_map = rakeMap(
-                    population[j], copy.copy(map_tuple), shape
+                unraked_amount, filled_map, _ = rakeMap(
+                    population[j], copy.copy(map_tuple), shape, False
                 )
                 raked_amount = to_rake_amount - unraked_amount
                 fit.append(raked_amount)
@@ -141,14 +156,15 @@ def evolutionize(
             if not found_solution and attempt_number <= max_runs:
                 print(f"\nAttempt number {attempt_number}.")
 
-    return terr_map if found_solution else []
+    return terr_map if found_solution else [], chromo
 
 
 def rakeMap(
     chromosome: List[int],
     map_tuple: Dict[Tuple[int, int], int],
     shape: Tuple[int, int],
-) -> Tuple[int, List[List[int]]]:
+    save_paths: bool,
+) -> Tuple[int, List[List[int]], Dict[Tuple[int, int], int]]:
     """Attempts to fill the map terrain with chromosome that is defined
     by the order of instructions known as genes.
 
@@ -157,15 +173,18 @@ def rakeMap(
         map_tuple (Dict[Tuple[int, int], int]): map defined by tuples
             of (x, y) being as coordinate keys
         shape (Tuple[int, int]): height and width lengths of the map
+        save_paths (bool): keep track of raking pathsaves path of raking
 
     Returns:
-        Tuple[int, List[List[int]]]: (amount of unraked spots, terrained map)
+        Tuple[int, List[List[int]], Dict[Tuple[int, int], int]]:
+            (amount of unraked spots, terrained map, raking paths)
     """
 
     rows, cols = shape
     half_perimeter = sum(shape)
     UNRAKED = 0
     parents = {}  # type: Dict[Any, Any]
+    rake_paths = {}  # type: Dict[Tuple[int, int], int]
     pos = 0  # type: Any
     order = 1
 
@@ -252,6 +271,9 @@ def rakeMap(
                 parent = pos
                 pos = pos[0] + move[0], pos[1] + move[1]
 
+            if save_paths:
+                rake_path = {key: order for key in reversed(parents)}
+                rake_paths = {**rake_paths, **rake_path}
             order += 1
 
     filled_map = []  # type: List[List[int]]
@@ -266,7 +288,7 @@ def rakeMap(
             filled_map.append([])
         filled_map[row_number].append(order_num)
 
-    return unraked_amount, filled_map
+    return unraked_amount, filled_map, rake_paths
 
 
 def generateProperties(
@@ -322,7 +344,7 @@ def generateProperties(
 
 def saveMap(
     map_list: List[List[str]],
-    import_name: str,
+    export_name: str,
     show: bool = False,
     spacing: str = "{:^3}",
 ) -> None:
@@ -330,12 +352,12 @@ def saveMap(
 
     Args:
         map_list (List[List[str]]): 2D map
-        import_name (str): name of the file we're saving the map into
+        export_name (str): name of the file we're saving the map into
         show (bool): Print saved map into console. Defaults to False.
         spacing (str, optional): spacing between numbers. Defaults to "{:^3}".
     """
 
-    with open("simulation/maps/" + import_name + ".txt", "w") as f:
+    with open("simulation/maps/" + export_name + ".txt", "w") as f:
         for i, row in enumerate(map_list):
             for j in range(len(row)):
                 f.write(spacing.format(map_list[i][j]))
@@ -344,6 +366,34 @@ def saveMap(
             f.write("\n")
             if show:
                 print()
+
+
+def saveChromo(chromosome: str, export_name: str) -> None:
+    """Saves chromosome into text file.
+
+    Args:
+        chromosome (str): solution defined by genes
+        export_name (str): root name of file that is going to be created
+    """
+
+    with open("simulation/maps/" + export_name + "_chromo.txt", "w") as f:
+        f.write(chromosome)
+
+
+def loadChromo(import_name: str) -> str:
+    """Loads chromosome from text file.
+
+    Args:
+        import_name (str): name of the file to load (with _chromo)
+
+    Returns:
+        str: chromosome
+    """
+
+    with open("simulation/maps/" + import_name + ".txt") as f:
+        chromosome = f.readline().rstrip()
+
+    return chromosome
 
 
 def loadMap(import_name: str) -> List[List[str]]:
@@ -416,6 +466,7 @@ def createTerrain(
     """Creates a file that represents terrained map.
     Map is filled with "-1" being walls and walkable places are filled
     with various numbers generated by evolutionary algorithm.
+    Chromosome will be saved into separate text file as well.
 
     Args:
         max_runs (int): max number of attempts to find a solution with evo alg.
@@ -434,12 +485,13 @@ def createTerrain(
         return ""
 
     walled_map_int = [[int(i) for i in subarray] for subarray in walled_map]
-    walled_map_int = evolutionize(walled_map_int, max_runs, True)
+    walled_map_int, chromosome = evolutionize(walled_map_int, max_runs, True)
     map_terrained = [[str(i) for i in subarray] for subarray in walled_map_int]
 
     if map_terrained:
         if not export_name:
             export_name = import_name[:-4]
+        saveChromo(chromosome, export_name)
         export_name += "_ter"
         saveMap(map_terrained, export_name, show)
         return export_name
@@ -506,24 +558,24 @@ def runEvolution(pars: Dict[str, Any]) -> None:
     import_name = createProperties(points_amount, import_name, show=True)
 
     # ? to be interfaced
-    import_walls = False
-    import_terrain = False
+    # import_walls = False
+    # import_terrain = False
 
-    # create a new set of maps from previously created walled map
-    if import_walls:
-        import_name = "queried_wal"
-        export_name = "Wimported"
-        import_name = createTerrain(max_runs, import_name, export_name)
-        if not import_name:
-            print("Could not find a solution!")
-            return
-        import_name = createProperties(points_amount, import_name, export_name)
+    # # create a new set of maps from previously created walled map
+    # if import_walls:
+    #     import_name = "queried_wal"
+    #     export_name = "Wimported"
+    #     import_name = createTerrain(max_runs, import_name, export_name)
+    #     if not import_name:
+    #         print("Could not find a solution!")
+    #         return
+    #     import_name = createProperties(points_amount, import_name, export_name)
 
-    # create a new properties map from previous created terrained map
-    if import_terrain:
-        import_name = "Wimported_ter"
-        export_name = "Timported"
-        import_name = createProperties(points_amount, import_name, export_name)
+    # # create a new properties map from previous created terrained map
+    # if import_terrain:
+    #     import_name = "Wimported_ter"
+    #     export_name = "Timported"
+    #     import_name = createProperties(points_amount, import_name, export_name)
 
 
 if __name__ == "__main__":
