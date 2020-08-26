@@ -272,7 +272,7 @@ def rakeMap(
                 pos = pos[0] + move[0], pos[1] + move[1]
 
             if save_paths:
-                rake_path = {key: order for key in reversed(parents)}
+                rake_path = {key: order for key in parents}
                 rake_paths = {**rake_paths, **rake_path}
             order += 1
 

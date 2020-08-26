@@ -402,7 +402,9 @@ def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
     print("Cost: " + str(distance) + "\n")
 
 
-def runPathfinding(pars: Dict[str, Any]) -> List[List[Tuple[int, int]]]:
+def runPathfinding(
+    pars: Dict[str, Any]
+) -> Tuple[List[List[Tuple[int, int]]], Dict[str, Any]]:
     """Runs pathfinding algorithm on a map that is loaded from the text file.
 
     Args:
@@ -416,7 +418,8 @@ def runPathfinding(pars: Dict[str, Any]) -> List[List[Tuple[int, int]]]:
                 None means all
 
     Returns:
-        List[List[Tuple[int, int]]]: lists of paths between ordered properties
+        Tuple[List[List[Tuple[int, int]]], Dict[str, Any]]: (lists of paths
+            between ordered properties, map properties)
     """
 
     fname, movement, climb, algorithm, subset_size = pars.values()
@@ -424,24 +427,24 @@ def runPathfinding(pars: Dict[str, Any]) -> List[List[Tuple[int, int]]]:
     map_data = Map(fname)
     if not map_data.properties:
         print("Invalid map!")
-        return []
+        return [], {}
 
     moves = getMoves(movement)
     if not moves:
         print("Invalid movement type!")
-        return []
+        return [], {}
 
     if subset_size is None:
         subset_size = len(map_data.properties["points"])
     elif subset_size < 0:
         print("Invalid subset size!")
-        return []
+        return [], {}
 
     if subset_size < 2:
         algorithm = "NC"
     if algorithm not in ("NC", "NP", "HK"):
         print("Invalid algorithm input!")
-        return []
+        return [], {}
 
     findShortestCombo = {"NC": noComb, "NP": naivePermutations, "HK": heldKarp}
 
@@ -451,18 +454,10 @@ def runPathfinding(pars: Dict[str, Any]) -> List[List[Tuple[int, int]]]:
 
     printSolution(paths, dist)
 
-    return paths
+    return paths, map_data.properties
 
 
 if __name__ == "__main__":
-
-    points = 10
-    evo_parameters = dict(
-        max_runs=3,
-        points_amount=points,
-        export_name="queried",
-        query="10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)",
-    )
 
     path_parameters = dict(
         fname="queried",
@@ -472,18 +467,5 @@ if __name__ == "__main__":
         subset_size=None,
     )
 
-    chain_parameters = dict(
-        save_fname_facts="facts",
-        load_fname_facts="facts_init",
-        load_fname_rules="rules",
-        step_by_step=True,
-        facts_amount=points + 1,
-        facts_random_order=True,
-    )
+    paths, map_properties = runPathfinding(path_parameters)
 
-    evo.runEvolution(evo_parameters)
-    runPathfinding(path_parameters)
-    chain.runProduction(chain_parameters)
-
-# ToDo: Pytest tests (validations types for parameters)
-# ToDo: Gif visualization
