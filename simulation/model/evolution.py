@@ -410,6 +410,20 @@ def loadMap(import_name: str) -> List[List[str]]:
     return map_
 
 
+def saveSolution(
+    rake_paths: Dict[Tuple[int, int], int], export_name: str
+) -> None:
+    """Saves solution (paths) of evolutionary alg. into pickle file.
+
+    Args:
+        rake_paths (Dict[Tuple[int, int], int]): order of raking the map
+        export_name (str): name of pickle file into which the solution
+            will be saved
+    """
+    with open("simulation/data/" + export_name + "_solution", "wb") as f:
+        pickle.dump(rake_paths, f)
+
+
 def createWalls(query: str, export_name: str, show: bool = False) -> None:
     """Creates a file that represents unterrained map with walls.
     Map is filled with "1" being walls and "0" being walkable places.
@@ -465,6 +479,7 @@ def createTerrain(max_runs: int, import_name: str, show: bool = False) -> str:
 
     export_name = import_name + "_ter"
     saveMap(terrained_map, export_name, show)
+    saveSolution(rake_paths, export_name)
 
     return "Solution was found." if solution else "Solution was not found."
 
