@@ -507,65 +507,63 @@ def createProperties(
     return ""
 
 
-def runEvolution(pars: Dict[str, Any]) -> List[int]:
+def createMaps(
+    begin_create: str,
+    query: str,
+    export_name: str,
+    max_runs: int,
+    points_amount: int,
+) -> None:
     """Runs evolution algorithm to create and save the maps into text file.
 
     Args:
-        pars (Dict[str, Any]): parameters:
-            max_runs: (int): max number of attempts to find a solution
-            points_amount (int): amount of destination points to visit
-            export_name (str): name of the file that is going to be created
-            query (str): contains size of map and tuple coordinates of walls
-                example: "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
-
-    Returns:
-        Tuple[int]: chromosome (solution that consist of genes)
+        begin_create (str): defines from which part of creating maps to
+            start until the ending properties part
+            (walls/terrain/properties)
+        query (str): contains size of map and tuple coordinates of walls
+            example: "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
+        export_name (str): name of the file that is going to be created
+        max_runs: (int): max number of attempts to find a solution
+        points_amount (int): amount of destination points to visit
     """
 
-    max_runs, points_amount, export_name, query = pars.values()
+    next_ = False
 
-    # create set of maps
-    import_name = createWalls(query, export_name)
-    import_name, chromosome = createTerrain(max_runs, import_name)
-    if not import_name:
-        print("Could not find a solution!")
-        return []
-    import_name = createProperties(points_amount, import_name, show=True)
+    try:
+        if begin_create == "walls":
+            createWalls(query, export_name)
+            next_ = True
+        if begin_create == "terrain" or next_:
+            createTerrain(max_runs, export_name)
+            next_ = True
+        if begin_create == "properties" or next_:
+            createProperties(points_amount, export_name, show=True)
 
-    return chromosome
-
-    # # ? to be interfaced
-    # import_walls = False
-    # import_terrain = False
-
-    # # create a new set of maps from previously created walled map
-    # if import_walls:
-    #     import_name = "queried_wal"
-    #     export_name = "Wimported"
-    #     import_name = createTerrain(max_runs, import_name, gggexport_name)
-    #     if not import_name:
-    #         print("Could not find a solution!")
-    #         return
-    #     import_name = createProperties(
-    #         points_amount, import_name, gggexport_name
-    #     )
-
-    # # create a new properties map from previous created terrained map
-    # if import_terrain:
-    #     import_name = "Wimported_ter"
-    #     export_name = "Timported"
-    #     import_name = createProperties(
-    #         points_amount, import_name, ggggexport_name
-    #     )
+    except QueryError as e:
+        print(e)
+    except FileImportError as e:
+        print(e)
 
 
 if __name__ == "__main__":
 
-    evo_parameters = dict(
-        max_runs=1,
-        points_amount=11,
-        export_name="queried",
-        query="10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)",
-    )
+    # parameters:
 
-    chromosome = runEvolution(evo_parameters)
+    # walls uses: query, file_name, max_runs, points_amount
+    # terrain uses: file_name, max_runs, points_amount
+    # properties uses: file_name, points_amount
+    begin_create = "walls"
+    query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
+    file_name = "queried"
+    max_runs = 3
+    points_amount = 10
+
+    evo_parameters = dict(
+        begin_create=begin_create,
+        query=query,
+        export_name=file_name,
+        max_runs=max_runs,
+        points_amount=points_amount,
+    )  # type: Dict[str, Any]
+
+    createMaps(**evo_parameters)
