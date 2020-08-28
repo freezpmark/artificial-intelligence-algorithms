@@ -413,6 +413,22 @@ def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
     print("Cost: " + str(distance) + "\n")
 
 
+def saveSolution(
+    comb_path: List[List[Tuple[int, int]]], export_name: str
+) -> None:
+    """Saves solution (path) of finding the shortest combination of path
+    into pickle file.
+
+    Args:
+        comb_path (List[List[Tuple[int, int]]]): lists of paths between
+            ordered properties
+        export_name (str): name of pickle file into which the solution
+            will be saved
+    """
+    with open("simulation/data/" + export_name + "_path_solution", "wb") as f:
+        pickle.dump(comb_path, f)
+
+
 def setSubsetSize(
     subset_size: Union[int, None], points: List[Tuple[int, int]]
 ) -> int:
@@ -495,6 +511,7 @@ def runPathfinding(
         paths = getPaths(pro_data, pro_order)
 
         printSolution(paths, dist)
+        saveSolution(paths, fname)
 
     except FileNotFoundError as e:
         print(e)
