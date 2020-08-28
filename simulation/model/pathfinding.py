@@ -1,14 +1,24 @@
 import heapq
+import pickle
 from copy import deepcopy as dcopy
 from itertools import combinations, permutations
 from sys import maxsize
-from typing import Any, Dict, FrozenSet, List, Tuple
-
-import evolution as evo
-import forward_chain as chain
+from typing import Any, Dict, FrozenSet, List, Tuple, Union
 
 
 class PositionError(Exception):
+    pass
+
+
+class MovementError(Exception):
+    pass
+
+
+class SubsetSizeError(Exception):
+    pass
+
+
+class AlgorithmError(Exception):
     pass
 
 
@@ -43,21 +53,19 @@ class Map:
             "start": 0,
         }  # type: Dict[str, Any]
         nodes = {}  # type: Dict[Tuple[int, int], Node]
-        try:
-            with open("simulation/maps/" + fname + "_pro.txt") as f:
-                for i, line in enumerate(f):
-                    for j, col in enumerate(line.split()):
-                        if col[0] in "([{":
-                            if col[0] == "(":
-                                properties["points"].append((i, j))
-                            elif col[0] == "[":
-                                properties["base"] = (i, j)
-                            elif col[0] == "{":
-                                properties["start"] = (i, j)
-                            col = col[1:-1]
-                        nodes[i, j] = Node((i, j), int(col))
-        except FileNotFoundError:
-            pass
+
+        with open("simulation/data/" + fname + "_pro.txt") as f:
+            for i, line in enumerate(f):
+                for j, col in enumerate(line.split()):
+                    if col[0] in "([{":
+                        if col[0] == "(":
+                            properties["points"].append((i, j))
+                        elif col[0] == "[":
+                            properties["base"] = (i, j)
+                        elif col[0] == "{":
+                            properties["start"] = (i, j)
+                        col = col[1:-1]
+                    nodes[i, j] = Node((i, j), int(col))
 
         if all(properties.values()) and len(properties["points"]) > 1:
             self.fname = fname
@@ -88,6 +96,9 @@ def getMoves(query: str) -> List[Tuple[int, int]]:
         query (str): determines the type of movement options
             ("M" - Manhattan, "D" - Diagonal + Manhattan)
 
+    Raises:
+        MovementError: if query has not "M" or "N"
+
     Returns:
         List[Tuple[int, int]]: tuples of x, y coordinate movement options
     """
@@ -98,7 +109,7 @@ def getMoves(query: str) -> List[Tuple[int, int]]:
     elif query == "D":
         return moves + [(-1, -1), (-1, 1), (1, -1), (1, 1)]
 
-    return []
+    raise MovementError("Invalid movement type!")
 
 
 def unpassable(neighbor: Tuple[int, int], data: Map):
@@ -402,70 +413,111 @@ def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
     print("Cost: " + str(distance) + "\n")
 
 
-def runPathfinding(
-    pars: Dict[str, Any]
-) -> Tuple[List[List[Tuple[int, int]]], Dict[str, Any]]:
-    """Runs pathfinding algorithm on a map that is loaded from the text file.
+def setSubsetSize(
+    subset_size: Union[int, None], points: List[Tuple[int, int]]
+) -> int:
+    """Validates and sets subset size when it's None.
 
     Args:
-        pars (Dict[str, Any]): parameters:
-            fname (string): name of the file to load (without _pro.txt)
-            movement (string): "M" - Manhattan, "D" - Diagonal + Manhattan
-            climb (bool): Climbing distance approach. If True, distance is
-                measured with abs(current terrain number - next terrain number)
-            algorithm (string): NP - Naive Permutations, HK - Held Karp
-            subset_size (Union[int, None], optional): number of points to visit
-                None means all
+        subset_size (Union[int, None]): number of points to visit
+            None means all
+
+    Raises:
+        SubsetSizeError: if subset_size is negative number
 
     Returns:
-        Tuple[List[List[Tuple[int, int]]], Dict[str, Any]]: (lists of paths
-            between ordered properties, map properties)
+        int: subset size
     """
 
-    fname, movement, climb, algorithm, subset_size = pars.values()
-
-    map_data = Map(fname)
-    if not map_data.properties:
-        print("Invalid map!")
-        return [], {}
-
-    moves = getMoves(movement)
-    if not moves:
-        print("Invalid movement type!")
-        return [], {}
-
     if subset_size is None:
-        subset_size = len(map_data.properties["points"])
-    elif subset_size < 0:
-        print("Invalid subset size!")
-        return [], {}
+        subset_size = len(points)
+    if subset_size < 0:
+        raise SubsetSizeError("Invalid subset size!")
+
+    return subset_size
+
+
+def setAlgorithm(algorithm: str, subset_size: int) -> str:
+    """Validates and sets algorithm.
+
+    Args:
+        algorithm (str): NP - Naive Permutations, HK - Held Karp, NC - No comb
+        subset_size (int): number of points to visit
+
+    Raises:
+        AlgorithmError: if it is not either NC, NP or HK
+
+    Returns:
+        str: algorithm
+    """
 
     if subset_size < 2:
         algorithm = "NC"
     if algorithm not in ("NC", "NP", "HK"):
-        print("Invalid algorithm input!")
-        return [], {}
+        raise AlgorithmError("Invalid algorithm input!")
 
-    findShortestCombo = {"NC": noComb, "NP": naivePermutations, "HK": heldKarp}
+    return algorithm
 
-    pro_data = findShortestDistances(map_data, moves, climb)
-    pro_order, dist = findShortestCombo[algorithm](pro_data, subset_size)
-    paths = getPaths(pro_data, pro_order)
 
-    printSolution(paths, dist)
+def runPathfinding(
+    fname: str,
+    movement: str,
+    climb: bool,
+    algorithm: str,
+    subset_size: Union[int, None],
+) -> None:
+    """Runs pathfinding algorithm on a map that is loaded from the text file.
 
-    return paths, map_data.properties
+    Args:
+        fname (string): name of the file to load (without _pro.txt)
+        movement (string): "M" - Manhattan, "D" - Diagonal + Manhattan
+        climb (bool): Climbing distance approach. If True, distance is
+            measured with abs(current terrain number - next terrain number)
+        algorithm (string): NP - Naive Permutations, HK - Held Karp
+        subset_size (Union[int, None]): number of points to visit
+            None means all
+    """
+
+    findShortestCombo = {
+        "NC": noComb,
+        "NP": naivePermutations,
+        "HK": heldKarp,
+    }
+
+    try:
+        map_data = Map(fname)
+        moves = getMoves(movement)
+        subset_size = setSubsetSize(subset_size, map_data.properties["points"])
+        algorithm = setAlgorithm(algorithm, subset_size)
+
+        pro_data = findShortestDistances(map_data, moves, climb)
+        pro_order, dist = findShortestCombo[algorithm](pro_data, subset_size)
+        paths = getPaths(pro_data, pro_order)
+
+        printSolution(paths, dist)
+
+    except FileNotFoundError as e:
+        print(e)
+    except MovementError as e:
+        print(e)
+    except SubsetSizeError as e:
+        print(e)
 
 
 if __name__ == "__main__":
 
+    fname = "queried"
+    movement = "M"
+    climb = True
+    algorithm = "HK"
+    subset_size = None
+
     path_parameters = dict(
-        fname="queried",
-        movement="M",
-        climb=True,
-        algorithm="HK",
-        subset_size=None,
-    )
+        fname=fname,
+        movement=movement,
+        climb=climb,
+        algorithm=algorithm,
+        subset_size=subset_size,
+    )  # type: Dict[str, Any]
 
-    paths, map_properties = runPathfinding(path_parameters)
-
+    runPathfinding(**path_parameters)
