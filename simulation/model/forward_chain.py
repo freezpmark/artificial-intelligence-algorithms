@@ -227,6 +227,20 @@ def saveFacts(facts: List[str], save_fname_facts: str) -> None:
         f.write("\n".join(facts))
 
 
+def saveSolution(stepped_facts: Dict[str, List[str]], file_name: str) -> None:
+    """Saves solution of production system with stepped facts into json file.
+
+    Args:
+        stepped_facts (Dict[str, List[str]]): list of discovered facts by
+            known fact (being the key in the dict)
+        file_name (str): name of json file into which the solution
+            will be saved
+    """
+
+    with open("simulation/solutions/" + file_name + "_rule.json", "w") as f:
+        json.dump(stepped_facts, f, indent=4)
+
+
 def runProduction(
     save_fname_facts: str,
     load_fname_facts: str,
@@ -272,6 +286,8 @@ def runProduction(
 
     for i, fact in enumerate(stepped_facts, 1):
         print(f"{str(i)}:  {fact} -> " + ", ".join(stepped_facts[fact]))
+
+    saveSolution(stepped_facts, file_name)
 
 
 def runForwardChain(
