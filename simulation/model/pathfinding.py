@@ -54,7 +54,7 @@ class Map:
         }  # type: Dict[str, Any]
         nodes = {}  # type: Dict[Tuple[int, int], Node]
 
-        with open("simulation/data/" + fname + "_pro.txt") as f:
+        with open("simulation/maps/" + fname + "_pro.txt") as f:
             for i, line in enumerate(f):
                 for j, col in enumerate(line.split()):
                     if col[0] in "([{":
@@ -414,7 +414,7 @@ def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
 
 
 def saveSolution(
-    comb_path: List[List[Tuple[int, int]]], export_name: str
+    comb_path: List[List[Tuple[int, int]]], file_name: str
 ) -> None:
     """Saves solution (path) of finding the shortest combination of path
     into pickle file.
@@ -422,10 +422,10 @@ def saveSolution(
     Args:
         comb_path (List[List[Tuple[int, int]]]): lists of paths between
             ordered properties
-        export_name (str): name of pickle file into which the solution
+        file_name (str): name of pickle file into which the solution
             will be saved
     """
-    with open("simulation/data/" + export_name + "_path_solution", "wb") as f:
+    with open("simulation/solutions/" + file_name + "_path", "wb") as f:
         pickle.dump(comb_path, f)
 
 
@@ -475,7 +475,7 @@ def setAlgorithm(algorithm: str, subset_size: int) -> str:
     return algorithm
 
 
-def runPathfinding(
+def findShortestPath(
     fname: str,
     movement: str,
     climb: bool,
@@ -537,4 +537,4 @@ if __name__ == "__main__":
         subset_size=subset_size,
     )  # type: Dict[str, Any]
 
-    runPathfinding(**path_parameters)
+    findShortestPath(**path_parameters)
