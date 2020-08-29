@@ -1,4 +1,5 @@
 import collections as col
+import json
 import random
 import re
 from itertools import islice
@@ -226,37 +227,46 @@ def saveFacts(facts: List[str], save_fname_facts: str) -> None:
         f.write("\n".join(facts))
 
 
-def runProduction(pars: Dict[str, Any]) -> None:
+def runProduction(
+    save_fname_facts: str,
+    load_fname_facts: str,
+    load_fname_rules: str,
+    step_by_step: bool,
+    facts_amount: int,
+    facts_random_order: bool,
+    file_name: str,
+) -> None:
     """Sets parameters for running rule-based system with forward chaining.
 
     Args:
-        pars (Dict[str, Any]): parameters:
-            save_fname_facts (str): name of file into which facts will be saved
-            load_fname_facts (str): name of file from which we load facts
-            load_fname_rules (str): name of file from which we load rules
-            step_by_step (bool): entering one fact by each production run
-            facts_amount (int): number of facts we want to load (points)
-            facts_random_order (bool): shuffle loaded facts
+        save_fname_facts (str): name of file into which facts will be saved
+        load_fname_facts (str): name of file from which we load facts
+        load_fname_rules (str): name of file from which we load rules
+        step_by_step (bool): entering one fact by each production run
+        facts_amount (int): number of facts we want to load (points)
+        facts_random_order (bool): shuffle loaded facts
+        file_name (str): name of json file into which the solution
+            will be saved we save solution
     """
 
-    rules = loadRules(pars["load_fname_rules"])
-    facts = loadFacts(pars["load_fname_facts"])
-    if pars["facts_random_order"]:
+    rules = loadRules(load_fname_rules)
+    facts = loadFacts(load_fname_facts)
+    if facts_random_order:
         random.shuffle(facts)
-    if pars["facts_amount"] < len(facts):
-        facts = facts[: pars["facts_amount"]]
+    if facts_amount < len(facts):
+        facts = facts[:facts_amount]
 
-    if pars["step_by_step"]:
+    if step_by_step:
         new_facts = []  # type: List[str]
         stepped_facts = {}
         for i, key_fact in enumerate(facts):
             applied_facts, new_facts = runForwardChain(
-                new_facts + [key_fact], rules, pars["save_fname_facts"]
+                new_facts + [key_fact], rules, save_fname_facts
             )
             stepped_facts[key_fact] = applied_facts
     else:
         applied_facts, new_facts = runForwardChain(
-            facts, rules, pars["save_fname_facts"]
+            facts, rules, save_fname_facts
         )
         stepped_facts = {"All steps at once": applied_facts}
 
@@ -300,13 +310,22 @@ def runForwardChain(
 
 if __name__ == "__main__":
 
-    chain_parameters = dict(
-        save_fname_facts="facts",
-        load_fname_facts="facts_init",
-        load_fname_rules="rules",
-        step_by_step=True,
-        facts_amount=11,
-        facts_random_order=True,
-    )
+    save_fname_facts = "facts"
+    load_fname_facts = "facts_init"
+    load_fname_rules = "rules"
+    step_by_step = True
+    facts_amount = 11
+    facts_random_order = True
+    file_name = "queried"
 
-    runProduction(chain_parameters)
+    chain_parameters = dict(
+        save_fname_facts=save_fname_facts,
+        load_fname_facts=load_fname_facts,
+        load_fname_rules=load_fname_rules,
+        step_by_step=step_by_step,
+        facts_amount=facts_amount,
+        facts_random_order=facts_random_order,
+        file_name=file_name,
+    )  # type: Dict[str, Any]
+
+    runProduction(**chain_parameters)
