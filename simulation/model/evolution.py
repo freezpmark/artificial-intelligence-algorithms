@@ -398,9 +398,7 @@ def loadMap(fname: str) -> List[List[str]]:
     return map_
 
 
-def saveSolution(
-    rake_paths: Dict[Tuple[int, int], int], fname: str
-) -> None:
+def saveSolution(rake_paths: Dict[Tuple[int, int], int], fname: str) -> None:
     """Saves solution (paths) of evolutionary alg. into pickle file.
 
     Args:
