@@ -414,7 +414,7 @@ def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
 
 
 def saveSolution(
-    comb_path: List[List[Tuple[int, int]]], file_name: str
+    comb_path: List[List[Tuple[int, int]]], fname: str
 ) -> None:
     """Saves solution (path) of finding the shortest combination of path
     into pickle file.
@@ -422,10 +422,10 @@ def saveSolution(
     Args:
         comb_path (List[List[Tuple[int, int]]]): lists of paths between
             ordered properties
-        file_name (str): name of pickle file into which the solution
+        fname (str): name of pickle file into which the solution
             will be saved
     """
-    with open("simulation/solutions/" + file_name + "_path", "wb") as f:
+    with open("simulation/solutions/" + fname + "_path", "wb") as f:
         pickle.dump(comb_path, f)
 
 

@@ -227,17 +227,17 @@ def saveFacts(facts: List[str], save_fname_facts: str) -> None:
         f.write("\n".join(facts))
 
 
-def saveSolution(stepped_facts: Dict[str, List[str]], file_name: str) -> None:
+def saveSolution(stepped_facts: Dict[str, List[str]], fname: str) -> None:
     """Saves solution of production system with stepped facts into json file.
 
     Args:
         stepped_facts (Dict[str, List[str]]): list of discovered facts by
             known fact (being the key in the dict)
-        file_name (str): name of json file into which the solution
+        fname (str): name of json file into which the solution
             will be saved
     """
 
-    with open("simulation/solutions/" + file_name + "_rule.json", "w") as f:
+    with open("simulation/solutions/" + fname + "_rule.json", "w") as f:
         json.dump(stepped_facts, f, indent=4)
 
 
@@ -248,7 +248,7 @@ def runProduction(
     step_by_step: bool,
     facts_amount: int,
     facts_random_order: bool,
-    file_name: str,
+    fname: str,
 ) -> None:
     """Sets parameters for running rule-based system with forward chaining.
 
@@ -259,7 +259,7 @@ def runProduction(
         step_by_step (bool): entering one fact by each production run
         facts_amount (int): number of facts we want to load (points)
         facts_random_order (bool): shuffle loaded facts
-        file_name (str): name of json file into which the solution
+        fname (str): name of json file into which the solution
             will be saved we save solution
     """
 
@@ -287,7 +287,7 @@ def runProduction(
     for i, fact in enumerate(stepped_facts, 1):
         print(f"{str(i)}:  {fact} -> " + ", ".join(stepped_facts[fact]))
 
-    saveSolution(stepped_facts, file_name)
+    saveSolution(stepped_facts, fname)
 
 
 def runForwardChain(
@@ -332,7 +332,7 @@ if __name__ == "__main__":
     step_by_step = True
     facts_amount = 11
     facts_random_order = True
-    file_name = "queried"
+    fname = "queried"
 
     chain_parameters = dict(
         save_fname_facts=save_fname_facts,
@@ -341,7 +341,7 @@ if __name__ == "__main__":
         step_by_step=step_by_step,
         facts_amount=facts_amount,
         facts_random_order=facts_random_order,
-        file_name=file_name,
+        fname=fname,
     )  # type: Dict[str, Any]
 
     runProduction(**chain_parameters)
