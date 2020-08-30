@@ -67,7 +67,7 @@ class Map:
                         col = col[1:-1]
                     nodes[i, j] = Node((i, j), int(col))
 
-        if all(properties.values()) and len(properties["points"]) > 1:
+        if all(properties.values()):
             self.fname = fname
             self._height = i + 1
             self._width = j + 1
@@ -126,7 +126,7 @@ def unpassable(neighbor: Tuple[int, int], data: Map):
     return (
         not 0 <= neighbor[0] < data.height
         or not 0 <= neighbor[1] < data.width
-        or data[neighbor].terrain == -1
+        or data[neighbor].terrain < 0
     )
 
 
