@@ -272,8 +272,9 @@ def rakeMap(
                 pos = pos[0] + move[0], pos[1] + move[1]
 
             # save paths for visualization
-            rake_path = {key: order for key in parents}
-            rake_paths = {**rake_paths, **rake_path}
+            if any(move):
+                rake_path = {key: order for key in parents}
+                rake_paths = {**rake_paths, **rake_path}
             order += 1
 
     filled_map = []  # type: List[List[int]]
@@ -319,7 +320,7 @@ def generateProperties(
         reserved = set()
         for i, row in enumerate(terrained_map):
             for j, col in enumerate(row):
-                if col == "-1":
+                if int(col) < 0:
                     reserved.add((i, j))
 
         while True:
