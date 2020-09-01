@@ -94,7 +94,7 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
     # get sizes of text, drawings, circles
     step_size = 50
     step_half_size = int(step_size / 2)
-    window_width = width + 300
+    window_width = width + 350
     window_height = height + 1
     circle_radius = int(step_size / 5)
 
@@ -110,6 +110,7 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
     )
     draw = ImageDraw.Draw(image)
     font = ImageFont.truetype("arial", step_half_size)
+    small_font = ImageFont.truetype("arial", int(step_half_size/2))
     frames = [image]
 
     # create window of empty rectangles and unpassable locations
@@ -126,6 +127,14 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
                 draw.rectangle(rect, fill="black", outline="black")
             else:
                 draw.rectangle(rect, outline="black")
+
+    # draw text explanation
+    row = 1
+    text_h = row * 15
+    text_w = width + 25
+    text = "order. -- (distance): [fact]"
+    draw.text((text_w, text_h), text, fill="black", font=font)
+    row += 2
 
     # draw raking solution
     rake_frames = [image]
@@ -168,6 +177,11 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
     frame = frames[-1].copy()
     saving_frames = [frame]
     total_dist = 0
+    facts_view = rule_solved.items()
+    fact_iterator = iter(facts_view)
+    fact_found = None
+    deductions = []  # type: List[str]
+
     for i, path_s in enumerate(path_solved, 1):
 
         # remember last position from previous path
@@ -210,24 +224,42 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
             total_dist += next_dist
             text_w = width + 25
             text_h = height - 50
+            text = f"Total distance: {total_dist}"
             draw_head.text(
-                (text_w, text_h), str(total_dist), fill="black", font=font
+                (text_w, text_h), text, fill="black", font=font
             )
 
             frames.append(showing_frame)
 
-        # draw point distances and ordering
-        text_h = i * 25
+        # draw point ordering, distances, facts
+        if i > 1:   # we have to skip BASE
+            fact_found, deductions = next(fact_iterator)
+        text_h = row * 15
         text_w = width + 25
-        text = f"{i}. {point_dist}"
-        draw.text((text_w, text_h), text, fill="black", font=font)
+        text = f"{i}. -- ({point_dist}): [{fact_found}]"
+        draw.text((text_w, text_h), text, fill="black", font=small_font)
+        row += 1
 
+        if deductions:
+            text_w = width + 50
+        for deduction in deductions:
+            text_h = row * 15
+            text = f"Deduction: {deduction}"
+            draw.text((text_w, text_h), text, fill="black", font=small_font)
+            row += 1
+
+        # draw path order in map
         center2 = center2[0] + 10, center2[1]
         draw.text(center2, str(i), fill="white", font=font)
 
+    # need to draw again cuz of last frame without tot dist.
+    text_w = width + 25
+    text_h = height - 50
+    text = f"Total distance: {total_dist}"
+    draw.text(
+        (text_w, text_h), text, fill="black", font=font
+    )
     frames.append(saving_frame)
-
-    # TODO: add rules (each rule add distance)
 
     frames[0].save(
         "test.gif",
