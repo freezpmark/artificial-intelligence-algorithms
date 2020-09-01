@@ -1,5 +1,6 @@
 import json
 import pickle
+from functools import partial
 from typing import Any, Dict, List, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
@@ -36,6 +37,33 @@ def loadJson(fname: str) -> Dict[str, Any]:
         return json.load(f)
 
 
+def getCenterCircle(
+    rect_pos: List[List[Tuple[Tuple[int, int], Tuple[int, int]]]],
+    step_half_size: int,
+    circle_radius: int,
+    coor: Tuple[int, int],
+):
+    """Gets coordinates for drawing circle at the center of rectangle.
+
+    Args:
+        rect_pos (List[List[Tuple[Tuple[int, int], Tuple[int, int]]]]):
+            rectangle coordinate system
+        step_half_size (int): half size of a rectangle step
+        circle_radius (int): size of circle
+        coor (Tuple[int, int]): 2D coordinate from array
+
+    Returns:
+        Tuple[Tuple[int, int], Tuple[int, int]]: box coordinates of circle
+    """
+
+    x, y = coor
+    center = tuple((c + step_half_size for c in rect_pos[y][x][0]))
+    c1 = tuple((start - circle_radius for start in center))
+    c2 = tuple((end + circle_radius for end in center))
+
+    return c1, c2
+
+
 def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
     """Creates gif animation that visualizes the solution.
 
@@ -63,16 +91,18 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
         print(e)
         return
 
-    # text and drawing sizes
+    # get sizes of text, drawings, circles
     step_size = 50
     step_half_size = int(step_size / 2)
     window_width = width + 200
     window_height = height + 1
+    circle_radius = int(step_size / 5)
 
-    # get stepping color
+    # get stepping color, color sat/lum
     all_hue_values = 180
     last_value = tuple(rake_solved.values())[-1]
     color_step = int(all_hue_values / last_value)
+    saturation, luminance = 100, 50
 
     # create first image and font
     image = Image.new(
@@ -83,7 +113,7 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
     frames = [image]
 
     # create window of empty rectangles and unpassable locations
-    # also save rectangle coordinates
+    # also save rectangle coordinate system
     rect_pos = []  # type: List[List[Tuple[Tuple[int, int], Tuple[int, int]]]]
     for i, x in enumerate(range(0, width, step_size)):
         rect_pos.append([])
@@ -97,8 +127,7 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
             else:
                 draw.rectangle(rect, outline="black")
 
-    # create raking solution
-    saturation, luminance = 100, 50
+    # draw raking solution
     rake_frames = [image]
     for rake_step in rake_solved.items():
         frame = rake_frames[-1].copy()
@@ -120,10 +149,21 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
         frames.extend(rake_frames)
 
     # create properties
-    circle_radius = int(step_size / 5)
+    getCC = partial(getCenterCircle, rect_pos, step_half_size, circle_radius)
 
-    
+    c1, c2 = getCC(properties["start"])
+    draw.ellipse((c1, c2), fill="white", outline="white")
 
+    c1, c2 = getCC(properties["base"])
+    draw.ellipse((c1, c2), fill="black", outline="black")
+
+    for point in properties["points"]:
+        c1, c2 = getCC(point)
+        draw.ellipse((c1, c2), fill="blue", outline="blue")
+
+    frames[-1] = frame
+
+    # draw path solution
     x2, y2 = None, None
     frame = frames[-1].copy()
     saving_frames = [frame]
