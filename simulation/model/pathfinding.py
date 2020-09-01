@@ -130,6 +130,25 @@ def unpassable(neighbor: Tuple[int, int], data: Map):
     )
 
 
+def getNextDist(prev_terr: int, next_terr: int, climb: bool) -> int:
+    """Gets next distance based on whether its climbing approach or not.
+
+    Args:
+        prev_terr (int): terrain of position from which we move
+        next_terr (int): terrain of position to which we move
+        climb (int): Climbing distance approach. If True, distance is measured
+            with abs(current terrain number - next terrain number)
+
+    Returns:
+        int: distance to the next position
+    """
+
+    if climb:
+        return abs(prev_terr - next_terr) + 1
+    else:
+        return next_terr
+
+
 def dijkstra(
     data: Map,
     start: Tuple[int, int],
@@ -160,10 +179,9 @@ def dijkstra(
             neighbor = node.pos[0] + move[0], node.pos[1] + move[1]
             if not unpassable(neighbor, data):
                 next_dist = (
-                    data[neighbor].terrain
-                    if not climb
-                    else abs(node.terrain - data[neighbor].terrain + 1)
-                ) + node.dist
+                    getNextDist(node.terrain, data[neighbor].terrain, climb)
+                    + node.dist
+                )
 
                 if data[neighbor].dist > next_dist:
                     data[neighbor].dist = next_dist
@@ -413,9 +431,7 @@ def printSolution(paths: List[List[Tuple[int, int]]], distance: int) -> None:
     print("Cost: " + str(distance) + "\n")
 
 
-def saveSolution(
-    comb_path: List[List[Tuple[int, int]]], fname: str
-) -> None:
+def saveSolution(comb_path: List[List[Tuple[int, int]]], fname: str) -> None:
     """Saves solution (path) of finding the shortest combination of path
     into pickle file.
 

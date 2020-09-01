@@ -36,12 +36,14 @@ def loadJson(fname: str) -> Dict[str, Any]:
         return json.load(f)
 
 
-def createGif(fname: str, skip_rake: bool) -> None:
+def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
     """Creates gif animation that visualizes the solution.
 
     Args:
         fname (str): root name of the file to load
         skip_rake (bool): skips the raking part
+        climb (bool): Climbing distance approach. If True, distance is measured
+            with abs(current terrain number - next terrain number)
     """
 
     step_size = 50
@@ -54,9 +56,9 @@ def createGif(fname: str, skip_rake: bool) -> None:
         properties = map_.properties
 
         terrained_map = evo.loadMap(fname + "_ter")
+        rake_solved = loadPickle(fname + "_rake")
         path_solved = loadPickle(fname + "_path")
         rule_solved = loadJson(fname + "_rule")
-        rake_solved = loadPickle(fname + "_rake")
     except FileNotFoundError as e:
         print(e)
         return
@@ -67,12 +69,12 @@ def createGif(fname: str, skip_rake: bool) -> None:
     window_width = width + 200
     window_height = height + 1
 
-    # find stepping color
+    # get stepping color
     all_hue_values = 180
     last_value = tuple(rake_solved.values())[-1]
     color_step = int(all_hue_values / last_value)
 
-    # create image and font
+    # create first image and font
     image = Image.new(
         mode="RGB", size=(window_width, window_height), color="white"
     )
@@ -81,6 +83,7 @@ def createGif(fname: str, skip_rake: bool) -> None:
     frames = [image]
 
     # create window of empty rectangles and unpassable locations
+    # also save rectangle coordinates
     rect_pos = []  # type: List[List[Tuple[Tuple[int, int], Tuple[int, int]]]]
     for i, x in enumerate(range(0, width, step_size)):
         rect_pos.append([])
@@ -96,8 +99,7 @@ def createGif(fname: str, skip_rake: bool) -> None:
 
     # create raking solution
     saturation, luminance = 100, 50
-    frame = frames[-1].copy()
-    rake_frames = [frame]
+    rake_frames = [image]
     for rake_step in rake_solved.items():
         frame = rake_frames[-1].copy()
         draw = ImageDraw.Draw(frame)
@@ -117,21 +119,23 @@ def createGif(fname: str, skip_rake: bool) -> None:
     else:
         frames.extend(rake_frames)
 
-    # TODO: draw NOTE, BASE, START
-    # TODO: add distance in presence
-    # TODO: add rules
+    # create properties
+    circle_radius = int(step_size / 5)
+
+    
 
     x2, y2 = None, None
     frame = frames[-1].copy()
     saving_frames = [frame]
-    circle_radius = int(step_size / 5)
-    distance = 0
+    total_dist = 0
+    point_dists = []
     for path_s in path_solved:
 
         # remember last position from previous path
         if x2 is not None:
             path_s.insert(0, (x2, y2))
 
+        point_dist = 0
         for i, next_step in enumerate(path_s[1:]):
             saving_frame = saving_frames[-1].copy()
             draw = ImageDraw.Draw(saving_frame)
@@ -142,6 +146,7 @@ def createGif(fname: str, skip_rake: bool) -> None:
             center2 = tuple((c + step_half_size for c in rect_pos[y2][x2][0]))
 
             draw.line((center1, center2), fill="white", width=4)
+            # draw properties
 
             saving_frames.append(saving_frame)
 
@@ -159,16 +164,24 @@ def createGif(fname: str, skip_rake: bool) -> None:
                 fill="black",
                 outline="black",
             )
+            prev_terr = int(terrained_map[x1][y1])
+            next_terr = int(terrained_map[x2][y2])
 
-            # draw distance     TODO: climbing too!
-            distance += int(terrained_map[x2][y2])
+            # draw distance
+            next_dist = path.getNextDist(prev_terr, next_terr, climb)
+            point_dist += next_dist
+            total_dist += next_dist
             text_w = width + 25
             text_h = height - 50
             draw_head.text(
-                (text_w, text_h), str(distance), fill="black", font=font
+                (text_w, text_h), str(total_dist), fill="black", font=font
             )
 
             frames.append(showing_frame)
+
+        point_dists.append(point_dist)
+
+    # TODO: add rules (each rule add distance)
 
     frames[0].save(
         "test.gif",
@@ -184,5 +197,6 @@ if __name__ == "__main__":
 
     fname = "queried"
     skip_rake = True
+    climb = True
 
-    createGif(fname, skip_rake)
+    createGif(fname, skip_rake, climb)
