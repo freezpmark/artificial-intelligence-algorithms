@@ -94,7 +94,7 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
     # get sizes of text, drawings, circles
     step_size = 50
     step_half_size = int(step_size / 2)
-    window_width = width + 200
+    window_width = width + 300
     window_height = height + 1
     circle_radius = int(step_size / 5)
 
@@ -168,26 +168,23 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
     frame = frames[-1].copy()
     saving_frames = [frame]
     total_dist = 0
-    point_dists = []
-    for path_s in path_solved:
+    for i, path_s in enumerate(path_solved, 1):
 
         # remember last position from previous path
         if x2 is not None:
             path_s.insert(0, (x2, y2))
 
         point_dist = 0
-        for i, next_step in enumerate(path_s[1:]):
+        for j, next_step in enumerate(path_s[1:]):
             saving_frame = saving_frames[-1].copy()
             draw = ImageDraw.Draw(saving_frame)
 
-            x1, y1 = path_s[i]
+            x1, y1 = path_s[j]
             x2, y2 = next_step
             center1 = tuple((c + step_half_size for c in rect_pos[y1][x1][0]))
             center2 = tuple((c + step_half_size for c in rect_pos[y2][x2][0]))
 
             draw.line((center1, center2), fill="white", width=4)
-            # draw properties
-
             saving_frames.append(saving_frame)
 
             # draw circle and last movement
@@ -219,7 +216,16 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
 
             frames.append(showing_frame)
 
-        point_dists.append(point_dist)
+        # draw point distances and ordering
+        text_h = i * 25
+        text_w = width + 25
+        text = f"{i}. {point_dist}"
+        draw.text((text_w, text_h), text, fill="black", font=font)
+
+        center2 = center2[0] + 10, center2[1]
+        draw.text(center2, str(i), fill="white", font=font)
+
+    frames.append(saving_frame)
 
     # TODO: add rules (each rule add distance)
 
