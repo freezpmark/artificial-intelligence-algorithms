@@ -1,7 +1,7 @@
 import model.evolution as evo
 import model.forward_chain as chain
 import model.pathfinding as path
-# import view
+import view
 
 if __name__ == "__main__":
 
@@ -15,7 +15,7 @@ if __name__ == "__main__":
     points_amount = 10
 
     movement = "M"
-    climb = True
+    climb = False
     algorithm = "HK"
     subset_size = None
 
@@ -35,10 +35,10 @@ if __name__ == "__main__":
 
     path_parameters = dict(
         fname=fname,
-        movement="M",
-        climb=True,
-        algorithm="HK",
-        subset_size=None,
+        movement=movement,
+        climb=climb,
+        algorithm=algorithm,
+        subset_size=subset_size,
     )
 
     chain_parameters = dict(
@@ -55,4 +55,6 @@ if __name__ == "__main__":
     path.findShortestPath(**path_parameters)
     chain.runProduction(**chain_parameters)
 
-    # view.createGif(fname)
+    skip_rake = True
+
+    view.createGif(fname, skip_rake, climb)

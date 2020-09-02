@@ -9,7 +9,7 @@ import model.evolution as evo
 import model.pathfinding as path
 
 
-def loadPickle(fname: str):
+def loadPickle(fname: str) -> Any:
     """Loads a pickle file.
 
     Args:
@@ -42,7 +42,7 @@ def getCenterCircle(
     step_half_size: int,
     circle_radius: int,
     coor: Tuple[int, int],
-):
+) -> Tuple[Tuple[int, ...], Tuple[int, ...]]:
     """Gets coordinates for drawing circle at the center of rectangle.
 
     Args:
@@ -74,46 +74,46 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
             with abs(current terrain number - next terrain number)
     """
 
-    step_size = 50
-
-    # NOTE: visualization only works on rake_solved maps
+    # TODO?: visualization only works on rake_solved maps
+    # TODO?: we must specify climb bool value
     try:
-        map_ = path.Map(fname)
-        height = map_.height * step_size
-        width = map_.width * step_size
-        properties = map_.properties
-
+        map_props = path.Map(fname)
         terrained_map = evo.loadMap(fname + "_ter")
         rake_solved = loadPickle(fname + "_rake")
-        path_solved = loadPickle(fname + "_path")
+        paths_solved = loadPickle(fname + "_path")
         rule_solved = loadJson(fname + "_rule")
     except FileNotFoundError as e:
         print(e)
         return
 
-    # get sizes of text, drawings, circles
-    step_size = 50
+    # parameters
+    step_size = 50  # should not be changed, other sizes are not scalled
+    info_space = 350
+
+    # get sizes of window, drawings, text, circles
+    height = map_props.height * step_size
+    width = map_props.width * step_size
+    properties = map_props.properties
+    map_width = width + info_space
+    map_height = height + 1
     step_half_size = int(step_size / 2)
-    window_width = width + 350
-    window_height = height + 1
     circle_radius = int(step_size / 5)
 
     # get stepping color, color sat/lum
     all_hue_values = 180
-    last_value = tuple(rake_solved.values())[-1]
-    color_step = int(all_hue_values / last_value)
+    last_rake_value = tuple(rake_solved.values())[-1]
+    color_step = int(all_hue_values / last_rake_value)
     saturation, luminance = 100, 50
 
     # create first image and font
-    image = Image.new(
-        mode="RGB", size=(window_width, window_height), color="white"
-    )
+    image = Image.new(mode="RGB", size=(map_width, map_height), color="white")
     draw = ImageDraw.Draw(image)
     font = ImageFont.truetype("arial", step_half_size)
-    small_font = ImageFont.truetype("arial", int(step_half_size/2))
+    small_font = ImageFont.truetype("arial", int(step_half_size / 2))
+    small_font_bold = ImageFont.truetype("arialbd", int(step_half_size / 2))
     frames = [image]
 
-    # create window of empty rectangles and unpassable locations
+    # draw window of empty rectangles and unpassable locations
     # also save rectangle coordinate system
     rect_pos = []  # type: List[List[Tuple[Tuple[int, int], Tuple[int, int]]]]
     for i, x in enumerate(range(0, width, step_size)):
@@ -132,9 +132,9 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
     row = 1
     text_h = row * 15
     text_w = width + 25
-    text = "order. -- (distance): [fact]"
-    draw.text((text_w, text_h), text, fill="black", font=font)
-    row += 2
+    text = "    -- (distance): [fact]"
+    draw.text((text_w, text_h), text, fill="black", font=small_font_bold)
+    row += 1
 
     # draw raking solution
     rake_frames = [image]
@@ -149,72 +149,55 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
 
         draw.rectangle(rect_pos[y][x], fill=color, outline="black")
         draw.text(rect_start_pos, str(order_num), fill="black", font=font)
-
         rake_frames.append(frame)
 
     if skip_rake:
-        frames.append(rake_frames[-1])
+        frames[-1] = rake_frames[-1]
     else:
         frames.extend(rake_frames)
 
-    # create properties
+    # draw properties
     getCC = partial(getCenterCircle, rect_pos, step_half_size, circle_radius)
-
-    c1, c2 = getCC(properties["start"])
-    draw.ellipse((c1, c2), fill="white", outline="white")
-
-    c1, c2 = getCC(properties["base"])
-    draw.ellipse((c1, c2), fill="black", outline="black")
-
+    draw.ellipse(getCC(properties["start"]), fill="white", outline="white")
+    draw.ellipse(getCC(properties["base"]), fill="black", outline="black")
     for point in properties["points"]:
-        c1, c2 = getCC(point)
-        draw.ellipse((c1, c2), fill="blue", outline="blue")
-
-    frames[-1] = frame
+        draw.ellipse(getCC(point), fill="blue", outline="blue")
+    frames[-1] = frame  # add these properties into previous frame
 
     # draw path solution
     x2, y2 = None, None
-    frame = frames[-1].copy()
-    saving_frames = [frame]
-    total_dist = 0
-    facts_view = rule_solved.items()
-    fact_iterator = iter(facts_view)
+    fact_iterator = iter(rule_solved.items())
     fact_found = None
     deductions = []  # type: List[str]
+    total_dist = 0
+    frame = frames[-1].copy()
+    saved_frames = [frame]
 
-    for i, path_s in enumerate(path_solved, 1):
-
+    for i, path_solved in enumerate(paths_solved, 1):
         # remember last position from previous path
         if x2 is not None:
-            path_s.insert(0, (x2, y2))
+            path_solved.insert(0, (x2, y2))
+        else:
+            path_solved.insert(0, properties["start"])
 
         point_dist = 0
-        for j, next_step in enumerate(path_s[1:]):
-            saving_frame = saving_frames[-1].copy()
+        for j, next_step in enumerate(path_solved[1:]):
+            saving_frame = saved_frames[-1].copy()
             draw = ImageDraw.Draw(saving_frame)
 
-            x1, y1 = path_s[j]
+            # draw thin lines that will be saved
+            x1, y1 = path_solved[j]
             x2, y2 = next_step
             center1 = tuple((c + step_half_size for c in rect_pos[y1][x1][0]))
             center2 = tuple((c + step_half_size for c in rect_pos[y2][x2][0]))
-
             draw.line((center1, center2), fill="white", width=4)
-            saving_frames.append(saving_frame)
+            saved_frames.append(saving_frame)
 
             # draw circle and last movement
             showing_frame = saving_frame.copy()
             draw_head = ImageDraw.Draw(showing_frame)
             draw_head.line((center1, center2), fill="black", width=10)
-            draw_head.ellipse(
-                (
-                    center2[0] - circle_radius,
-                    center2[1] - circle_radius,
-                    center2[0] + circle_radius,
-                    center2[1] + circle_radius,
-                ),
-                fill="black",
-                outline="black",
-            )
+            draw_head.ellipse(getCC(next_step), fill="black", outline="black")
             prev_terr = int(terrained_map[x1][y1])
             next_terr = int(terrained_map[x2][y2])
 
@@ -223,16 +206,15 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
             point_dist += next_dist
             total_dist += next_dist
             text_w = width + 25
-            text_h = height - 50
+            text_h = height - 25
             text = f"Total distance: {total_dist}"
             draw_head.text(
-                (text_w, text_h), text, fill="black", font=font
+                (text_w, text_h), text, fill="black", font=small_font_bold
             )
-
             frames.append(showing_frame)
 
         # draw point ordering, distances, facts
-        if i > 1:   # we have to skip BASE
+        if i > 1:  # we have to skip BASE
             fact_found, deductions = next(fact_iterator)
         text_h = row * 15
         text_w = width + 25
@@ -240,6 +222,7 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
         draw.text((text_w, text_h), text, fill="black", font=small_font)
         row += 1
 
+        # draw deductions from found fact
         if deductions:
             text_w = width + 50
         for deduction in deductions:
@@ -252,14 +235,15 @@ def createGif(fname: str, skip_rake: bool, climb: bool) -> None:
         center2 = center2[0] + 10, center2[1]
         draw.text(center2, str(i), fill="white", font=font)
 
-    # need to draw again cuz of last frame without tot dist.
+    # need to draw again cuz last frame is without total distance
     text_w = width + 25
-    text_h = height - 50
+    text_h = height - 25
     text = f"Total distance: {total_dist}"
-    draw.text(
-        (text_w, text_h), text, fill="black", font=font
-    )
+    draw.text((text_w, text_h), text, fill="black", font=small_font_bold)
     frames.append(saving_frame)
+
+    # leave the last frame for longer
+    frames.extend([frames[-1]] * 20)
 
     frames[0].save(
         "test.gif",

@@ -231,10 +231,9 @@ def aStar(
                     data[neighbor].pos[1] - dest[1]
                 )
                 g = (
-                    data[neighbor].terrain
-                    if not climb
-                    else abs(node.terrain - data[neighbor].terrain + 1)
-                ) + node.g
+                    getNextDist(node.terrain, data[neighbor].terrain, climb)
+                    + node.g
+                )
                 f = g + h
 
                 if f < data[neighbor].dist:
@@ -541,7 +540,7 @@ if __name__ == "__main__":
 
     fname = "queried"
     movement = "M"
-    climb = True
+    climb = False
     algorithm = "HK"
     subset_size = None
 
