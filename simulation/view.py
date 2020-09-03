@@ -19,7 +19,7 @@ def loadPickle(fname: str) -> Any:
         Any: pickled content
     """
 
-    with open("simulation/solutions/" + fname, "rb") as handle:
+    with open("simulation/data/solutions/" + fname, "rb") as handle:
         return pickle.loads(handle.read())
 
 
@@ -33,7 +33,7 @@ def loadJson(fname: str) -> Dict[str, Any]:
         Dict[str, Any]: json-ed content
     """
 
-    with open("simulation/solutions/" + fname + ".json", "r") as f:
+    with open("simulation/data/solutions/" + fname + ".json", "r") as f:
         return json.load(f)
 
 

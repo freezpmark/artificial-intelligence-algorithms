@@ -358,7 +358,7 @@ def saveMap(
         spacing (str, optional): spacing between numbers. Defaults to "{:^3}".
     """
 
-    with open("simulation/maps/" + fname + ".txt", "w") as f:
+    with open("simulation/data/maps/" + fname + ".txt", "w") as f:
         for i, row in enumerate(map_list):
             for j in range(len(row)):
                 f.write(spacing.format(map_list[i][j]))
@@ -381,7 +381,7 @@ def loadMap(fname: str) -> List[List[str]]:
 
     map_ = []
     try:
-        with open("simulation/maps/" + fname + ".txt") as f:
+        with open("simulation/data/maps/" + fname + ".txt") as f:
             line = f.readline().rstrip()
             map_.append(line.split())
             prev_length = len(line)
@@ -407,7 +407,7 @@ def saveSolution(rake_paths: Dict[Tuple[int, int], int], fname: str) -> None:
         fname (str): name of pickle file into which the solution
             will be saved
     """
-    with open("simulation/solutions/" + fname + "_rake", "wb") as f:
+    with open("simulation/data/solutions/" + fname + "_rake", "wb") as f:
         pickle.dump(rake_paths, f)
 
 

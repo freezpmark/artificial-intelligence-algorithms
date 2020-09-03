@@ -54,7 +54,7 @@ class Map:
         }  # type: Dict[str, Any]
         nodes = {}  # type: Dict[Tuple[int, int], Node]
 
-        with open("simulation/maps/" + fname + "_pro.txt") as f:
+        with open("simulation/data/maps/" + fname + "_pro.txt") as f:
             for i, line in enumerate(f):
                 for j, col in enumerate(line.split()):
                     if col[0] in "([{":
@@ -440,7 +440,7 @@ def saveSolution(comb_path: List[List[Tuple[int, int]]], fname: str) -> None:
         fname (str): name of pickle file into which the solution
             will be saved
     """
-    with open("simulation/solutions/" + fname + "_path", "wb") as f:
+    with open("simulation/data/solutions/" + fname + "_path", "wb") as f:
         pickle.dump(comb_path, f)
 
 

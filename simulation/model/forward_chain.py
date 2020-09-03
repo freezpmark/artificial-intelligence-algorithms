@@ -33,7 +33,7 @@ def loadRules(fname_rules: str) -> List[Any]:
             r"((add|remove|message).*\?\w.*?, )*(add|remove|message).*\?\w.*"
         ),
     ]
-    with open("simulation/knowledge/" + fname_rules + ".txt") as f:
+    with open("simulation/data/knowledge/" + fname_rules + ".txt") as f:
         while rule := [line.rstrip("\n:") for line in islice(f, 4)]:
             if rule.pop():
                 print("There is no empty line after rule!")
@@ -56,7 +56,7 @@ def loadFacts(fname_facts: str) -> List[str]:
         List[str]: fact sentences
     """
 
-    with open("simulation/knowledge/" + fname_facts + ".txt") as f:
+    with open("simulation/data/knowledge/" + fname_facts + ".txt") as f:
         facts = [fact.rstrip() for fact in f]
 
     return facts
@@ -223,7 +223,8 @@ def saveFacts(facts: List[str], save_fname_facts: str) -> None:
         save_fname_facts (str): name of the file
     """
 
-    with open("simulation/knowledge/" + save_fname_facts + ".txt", "w") as f:
+    fpath = "simulation/data/knowledge/" + save_fname_facts + ".txt"
+    with open(fpath, "w") as f:
         f.write("\n".join(facts))
 
 
@@ -237,7 +238,7 @@ def saveSolution(stepped_facts: Dict[str, List[str]], fname: str) -> None:
             will be saved
     """
 
-    with open("simulation/solutions/" + fname + "_rule.json", "w") as f:
+    with open("simulation/data/solutions/" + fname + "_rule.json", "w") as f:
         json.dump(stepped_facts, f, indent=4)
 
 
