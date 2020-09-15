@@ -12,16 +12,16 @@ The task is to rake the sand on the entire Zen garden. Character always starts a
  - query - defines map size with walls
  - fname - name of the text file into which the map will be created
  - max_runs - max number of times to run evolutionary algorithm to find a solution
- - points_amount - amount of blue points (facts) we wish to create randomly in the map
+ - points_amount - amount of blue nodes (facts) we wish to create randomly in the map
 
 ### Pathfinding - pathfinding.py
-Finds the shortest path to visit all points. First point to visit is the black point for which A* algorithm is used. Then, we run Dijkstra's algorithm for each blue point to find the shortest distances to all other blue points. To find the shortest path between all blue points we can use either greedy Naive permutation or Held–Karp algorithm which is alot faster.
+Finds the shortest path to visit all nodes. First node to visit is the black node for which A* algorithm is used. Then, we run Dijkstra's algorithm for each blue node to find the shortest distances to all other blue nodes. To find the shortest path between all blue nodes we can use either greedy Naive permutation or Held–Karp algorithm which is alot faster.
 
 ##### <b>Parameters:</b>
  - movement - defines options of movement
- - climb - defines the way how the distance between adjacent points is calculated
- - algorithm - choses which algorithm to use to find the shortest path between blue points
- - subset_size - amount of blue points we wish to visit in the map
+ - climb - defines the way how the distance between adjacent nodes is calculated
+ - algorithm - choses which algorithm to use to find the shortest path between blue nodes
+ - subset_size - amount of blue nodes we wish to visit in the map
 
 ### Production rule system - forward_chain.py
 Production system belongs to knowledge systems that use data to create new knowledge. In this case, it deduces new facts from facts that are being collected in each blue node. Deduction is defined by set of rules that are loaded from the text file.
