@@ -547,11 +547,11 @@ def createMaps(
 
 if __name__ == "__main__":
 
+    begin_create = "walls"
     # walls uses: query, fname, max_runs, points_amount
     # terrain uses: fname, max_runs, points_amount
     # properties uses: fname, points_amount
-    begin_create = "walls"
-    query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9) (6,9)"
+    query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
     fname = "queried"
     max_runs = 3
     points_amount = 10

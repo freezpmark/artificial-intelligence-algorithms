@@ -1,0 +1,25 @@
+male Peter
+Peter is parent of Vlado
+Peter is father Vlado
+Peter is parent of Jano
+Peter is father Jano
+Vlado and Jano are siblings
+Jano and Vlado are siblings
+Vlado is parent of Viera
+Vlado is parent of Maria
+Viera and Maria are siblings
+Maria and Viera are siblings
+married Peter Eva
+Eva is parent of Vlado
+Eva is parent of Jano
+male Vlado
+Vlado is father Viera
+Vlado is father Maria
+Vlado is brother of Jano
+male Jano
+Jano is brother of Vlado
+Jano is uncle of Viera
+Jano is uncle of Maria
+female Eva
+Eva is mother Vlado
+Eva is mother Jano

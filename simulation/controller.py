@@ -5,25 +5,31 @@ import view
 
 if __name__ == "__main__":
 
+    # map creation parameters
+    begin_create = "walls"
     # walls uses: query, fname, max_runs, points_amount
     # terrain uses: fname, max_runs, points_amount
     # properties uses: fname, points_amount
-    begin_create = "walls"
-    query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9) (6,7)"
+    query = "10x12 (1,5) (2,1) (3,4) (4,2) (6,8) (6,9)"
     fname = "queried"
     max_runs = 1
     points_amount = 10
 
+    # pathfinding parameters
     movement = "M"
     climb = False
     algorithm = "HK"
     subset_size = None
 
+    # production parameters
     save_fname_facts = "facts"
     load_fname_facts = "facts_init"
     load_fname_rules = "rules"
     step_by_step = True
     facts_random_order = True
+
+    # view parameters
+    skip_rake = False
 
     evo_parameters = dict(
         begin_create=begin_create,
@@ -55,6 +61,8 @@ if __name__ == "__main__":
     path.findShortestPath(**path_parameters)
     chain.runProduction(**chain_parameters)
 
-    skip_rake = True
-
     view.createGif(fname, skip_rake, climb)
+
+# TODO: remember previous fitness attempts
+# TODO: optimize creating props
+# TODO: create tests
