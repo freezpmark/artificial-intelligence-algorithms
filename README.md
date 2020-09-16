@@ -1,7 +1,7 @@
 <img src="https://github.com/FrizzLi/Artificial-Intelligence/blob/master/animation.gif"/>
 
 ## Artificial-intelligence
-Created an app that produces GIF animation that visualizes: creation of map in Zen garden approach, finding the shortest path between all destinations, deducing new facts from facts that are being collected at certain destinations. The intention behind this project was to improve Python programming skills while practising implementation of some of the most widely mentioned algorithms in AI that don't use machine learning techniques. (Python)
+Created an app that produces GIF animation that visualizes: creation of map in Zen garden approach, shortest path visiting all destinations, deducing new facts from facts that are being collected at certain destinations. The intention behind this project was to improve Python programming skills while practising implementation of some of the most widely mentioned algorithms in AI that don't use machine learning techniques. (Python)
 
 ## Features
 ### Evolutionary algorithm - evolution.py
