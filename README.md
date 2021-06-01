@@ -42,7 +42,7 @@ Production system belongs to knowledge systems that use data to create new knowl
 ```
 $ pip install pillow
 ```
- - OR if you wish to install the whole environment I use, just execute setup.bat. It creates venv, activates it, install environment stuff and opens up Visual Studio Code.
+ - OR if you wish to install the whole environment I use, just execute setup.bat. It creates venv, activates it and installs environment stuff.
 
 
 <!--- old description
