@@ -1,3 +1,7 @@
-*.pyc
-*.egg-info
 venv
+*.pyc
+*.vscode
+*.gif
+data/knowledge/*facts.txt
+data/maps
+data/solutions
