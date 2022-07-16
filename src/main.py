@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import stage_1_evolution
 import stage_2_pathfinding
 import stage_3_forward_chain
@@ -68,3 +66,5 @@ if __name__ == "__main__":
     stage_2_pathfinding.find_shortest_path(**path_parameters)
     stage_3_forward_chain.run_production(**chain_parameters)
     view.create_gif(**view_parameters)
+
+# TODO: Logs and Tests
