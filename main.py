@@ -1,7 +1,7 @@
-import stage_1_evolution
-import stage_2_pathfinding
-import stage_3_forward_chain
-import view
+from src import stage_1_evolution
+from src import stage_2_pathfinding
+from src import stage_3_forward_chain
+from src import view
 
 
 if __name__ == "__main__":

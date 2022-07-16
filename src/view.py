@@ -19,8 +19,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-import stage_1_evolution
-import stage_2_pathfinding
+from src import stage_1_evolution
+from src import stage_2_pathfinding
 
 
 def _load_pickle(fname: str, suffix: str) -> Any:
