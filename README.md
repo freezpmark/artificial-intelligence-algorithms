@@ -37,6 +37,7 @@ Production system belongs to knowledge systems that use data to create new knowl
 ##### <b>Parameters:</b>
   - skip_rake - defines whether we want to skip raking part in the animation
 
+<!--- old description
 ## Installation
  - pillow (to create the animation)
 ```
@@ -45,7 +46,6 @@ $ pip install pillow
  - OR if you wish to install the whole environment I use, just execute setup.bat. It creates venv, activates it and installs environment stuff.
 
 
-<!--- old description
 ((In progress) App in which the intention is to cover all fundamental functionalities and principles of Python. Serves me for learning and practising Python and algorithms.)
 ### Production rule system - forward_chain.py
 Production system belongs to knowledge systems that use data to create new knowledge. Knowledge is not only expressing information about an object, but also links between objects, properties of selected problems and ways to ﬁnd solutions. Therefore, the knowledge system is in the simplest case a pair - program that can generally manipulate with knowledge and knowledge base that describes the problem and relationships that apply there.
