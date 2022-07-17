@@ -1,7 +1,6 @@
 venv
 *.pyc
 *.vscode
-*.gif
 src/data/knowledge/*facts.txt
 src/data/maps
 src/data/solutions
