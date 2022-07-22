@@ -247,12 +247,15 @@ def _remove_duplicates(
     """
 
     applicable_acts = []
+    acts = set()
     for found_act in found_acts:
         type_, act = found_act.split(" ", 1)
-        if (type_ == "add" and act not in known_facts) or (
-            type_ == "remove" and act in known_facts
-        ):
+        if (
+            (type_ == "add" and act not in known_facts)
+            or (type_ == "remove" and act in known_facts)
+        ) and (act not in acts):
             applicable_acts.append(found_act)
+            acts.add(act)
 
     return applicable_acts
 

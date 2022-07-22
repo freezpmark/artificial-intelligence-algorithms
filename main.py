@@ -51,7 +51,7 @@ if __name__ == "__main__":
         fname_load_facts=chain_fname_load_facts,
         fname_load_rules=chain_fname_load_rules,
         step_by_step=chain_step_by_step,
-        facts_amount=shared_points_amount + 1,
+        facts_amount=shared_points_amount,
         randomize_facts_order=chain_randomize_facts_order,
         fname=shared_fname,
     )

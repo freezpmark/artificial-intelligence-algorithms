@@ -14,6 +14,22 @@ Mother:
 ?X is parent of ?Y, female ?X
 add ?X is mother ?Y
 
+Male:
+?X is parent of ?Y, married ?X ?Z, female ?X
+add ?Z male
+
+Female:
+?X is parent of ?Y, married ?X ?Z, male ?X
+add ?Z female
+
+Father2:
+?X is parent of ?Y, married ?X ?Z, female ?X
+add ?Z is father ?Y
+
+Mother2:
+?X is parent of ?Y, married ?X ?Z, male ?X
+add ?Z is mother ?Y
+
 Siblings:
 ?X is parent of ?Y, ?X is parent of ?Z, <> ?Y ?Z
 add ?Y and ?Z are siblings
