@@ -414,7 +414,7 @@ if __name__ == "__main__":
         fname_load_facts=FNAME_LOAD_FACTS,
         fname_load_rules=FNAME_LOAD_RULES,
         step_by_step=STEP_BY_STEP,
-        facts_amount=FACTS_AMOUNT + 1,
+        facts_amount=FACTS_AMOUNT,
         randomize_facts_order=RANDOMIZE_FACTS_ORDER,
         fname=FNAME,
     )  # type: Dict[str, Any]
