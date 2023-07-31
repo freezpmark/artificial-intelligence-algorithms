@@ -66,12 +66,12 @@ def run_production(
 
         for known_fact in known_facts:
             using_facts += [known_fact]
-            new_facts = run_forward_chain(using_facts, rules, fname_save_facts)
+            new_facts = run_forward_chain(using_facts, rules)
             fact_discovery_flow[known_fact] = new_facts
 
     else:
         using_facts = known_facts
-        new_facts = run_forward_chain(using_facts, rules, fname_save_facts)
+        new_facts = run_forward_chain(using_facts, rules)
         fact_discovery_flow = {"All steps at once": new_facts}
 
     _save_facts(using_facts, fname_save_facts)
@@ -105,8 +105,8 @@ def init_rules(fname_rules: str) -> List[Any]:
         ),  # instead of ".*?," we could use "[^,]*,", or combine it "[^,]*?,"
     ]
 
-    source_dir = Path(__file__).parents[0]
-    fname_path = Path(f"{source_dir}/data/knowledge/{fname_rules}.txt")
+    src_dir = Path(__file__).parents[0]
+    fname_path = Path(f"{src_dir}/data/knowledge/{fname_rules}.txt")
 
     rules = []
     with open(fname_path, encoding="utf-8") as file:
@@ -138,8 +138,8 @@ def init_facts(
         List[str]: known facts in sentences
     """
 
-    source_dir = Path(__file__).parents[0]
-    fname_path = Path(f"{source_dir}/data/knowledge/{fname_facts}.txt")
+    src_dir = Path(__file__).parents[0]
+    fname_path = Path(f"{src_dir}/data/knowledge/{fname_facts}.txt")
 
     with open(fname_path, encoding="utf-8") as file:
         facts = [fact.rstrip() for fact in file][:facts_amount]
@@ -170,9 +170,7 @@ def _get_4_lines_from_file(file: Any) -> Tuple[Any, ...]:
     return rule  # -> Tuple[str, str, str]
 
 
-def run_forward_chain(
-    known_facts: List[str], rules: List[Any], fname_save_facts: str
-) -> List[str]:
+def run_forward_chain(known_facts: List[str], rules: List[Any]) -> List[str]:
     """Discovers new facts from the given known facts and rules.
 
     Runs forward chaining to find actions that updates our facts collection
@@ -184,7 +182,6 @@ def run_forward_chain(
             name - name of the rule (unused)
             conds - conditions to fulfill actions
             acts - actions (message, add or remove fact from the set of facts)
-        fname_save_facts (str): name of the file into which facts will be saved
 
     Returns:
         List[str]: newly found facts that have been added by action
@@ -279,7 +276,6 @@ def _apply_actions(acts: List[str], known_facts: List[str]) -> List[str]:
         elif type_ == "remove":
             known_facts.remove(act)
         newly_found_facts.append(act)
-        # TODO: with remove it might not work -> check when doing tests, naming
 
     return newly_found_facts
 
@@ -356,8 +352,8 @@ def _save_facts(facts: List[str], fname_save_facts: str) -> None:
         fname_save_facts (str): name of file into which we save facts
     """
 
-    source_dir = Path(__file__).parents[0]
-    knowledge_dir = Path(f"{source_dir}/data/knowledge")
+    src_dir = Path(__file__).parents[0]
+    knowledge_dir = Path(f"{src_dir}/data/knowledge")
     knowledge_dir.mkdir(parents=True, exist_ok=True)
 
     fname_path = Path(f"{knowledge_dir}/{fname_save_facts}.txt")
@@ -390,8 +386,8 @@ def _save_solution(
         fname (str): name of json file into which the solution will be saved
     """
 
-    source_dir = Path(__file__).parents[0]
-    solutions_dir = Path(f"{source_dir}/data/solutions")
+    src_dir = Path(__file__).parents[0]
+    solutions_dir = Path(f"{src_dir}/data/solutions")
     solutions_dir.mkdir(parents=True, exist_ok=True)
 
     fname_path = f"{solutions_dir}/{fname}_rule.json"

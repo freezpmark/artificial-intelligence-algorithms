@@ -1,7 +1,9 @@
 """This module serves to create a visualizing simulation of all used stages.
 
 It creates a gif file that shows the outcome of all the AI algorithms.
-(stage_1_evolution.py, stage_2_pathfinding.py, stage_3_forward_chain.py).
+(stage_1_ai_evolution.py,
+stage_2_ai_pathfinding.py,
+stage_3_ai_forward_chain.py)
 
 Function hierarchy:
 create_gif
@@ -13,14 +15,19 @@ create_gif
 
 import json
 import pickle
+import sys
 from functools import partial
-from typing import Any, Dict, List, Tuple
 from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
 from PIL import Image, ImageDraw, ImageFont
 
-from src import stage_1_evolution
-from src import stage_2_pathfinding
+# executing via cog named ai_algo
+if Path(__file__).parents[0].name == "ai_algo":
+    sys.path.append(str(Path(__file__).parents[2]))  # for execution via main in cog
+    from cogs.ai_algo import stage_1_ai_evolution, stage_2_ai_pathfinding
+else:  # executing via main.py
+    import stage_1_ai_evolution, stage_2_ai_pathfinding
 
 
 def _load_pickle(fname: str, suffix: str) -> Any:
@@ -36,8 +43,8 @@ def _load_pickle(fname: str, suffix: str) -> Any:
         Any: pickled content
     """
 
-    source_dir = Path(__file__).parents[0]
-    fname_path = Path(f"{source_dir}/data/solutions/{fname}{suffix}")
+    src_dir = Path(__file__).parents[0]
+    fname_path = Path(f"{src_dir}/data/solutions/{fname}{suffix}.pickle")
     with open(fname_path, "rb") as handle:
         return pickle.loads(handle.read())
 
@@ -55,8 +62,8 @@ def _load_json(fname: str, suffix: str) -> Dict[str, Any]:
         Dict[str, Any]: json-ed content
     """
 
-    source_dir = Path(__file__).parents[0]
-    fname_path = Path(f"{source_dir}/data/solutions/{fname}{suffix}.json")
+    src_dir = Path(__file__).parents[0]
+    fname_path = Path(f"{src_dir}/data/solutions/{fname}{suffix}.json")
     with open(fname_path, encoding="utf-8") as file:
         return json.load(file)
 
@@ -71,8 +78,8 @@ def _save_gif(fname: str, frames: List[Any]) -> None:
         frames (Image]): drawn images
     """
 
-    source_dir = Path(__file__).parents[0]
-    fname_path = Path(f"{source_dir}/data/{fname}.gif")
+    src_dir = Path(__file__).parents[0]
+    fname_path = Path(f"{src_dir}/data/{fname}.gif")
     frames[0].save(
         fname_path,
         format="GIF",
@@ -122,8 +129,8 @@ def create_gif(fname: str, skip_rake: bool, climb: bool) -> None:
     """
 
     try:
-        map_props = stage_2_pathfinding.Map(fname)
-        terrained_map = stage_1_evolution.load_map(fname, "_ter")
+        map_props = stage_2_ai_pathfinding.Map(fname)
+        terrained_map = stage_1_ai_evolution.load_map(fname, "_ter")
         rake_solved = _load_pickle(fname, "_rake")
         paths_solved = _load_pickle(fname, "_path")
         rule_solved = _load_json(fname, "_rule")
@@ -257,7 +264,7 @@ def create_gif(fname: str, skip_rake: bool, climb: bool) -> None:
             # need parameter climb to draw distance because we are using
             # get_next_dist function that is in the path module. It would be a
             # hassle to compute the distances and putting them to results
-            next_dist = stage_2_pathfinding.get_next_dist(
+            next_dist = stage_2_ai_pathfinding.get_next_dist(
                 prev_terr, next_terr, climb
             )
             point_dist += next_dist

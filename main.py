@@ -1,7 +1,7 @@
-from src import stage_1_evolution
-from src import stage_2_pathfinding
-from src import stage_3_forward_chain
-from src import view
+import stage_1_ai_evolution
+import stage_2_ai_pathfinding
+import stage_3_ai_forward_chain
+import stage_4_view
 
 
 if __name__ == "__main__":
@@ -62,9 +62,7 @@ if __name__ == "__main__":
         climb=shared_climb,
     )
 
-    stage_1_evolution.create_maps(**evo_parameters)
-    stage_2_pathfinding.find_shortest_path(**path_parameters)
-    stage_3_forward_chain.run_production(**chain_parameters)
-    view.create_gif(**view_parameters)
-
-# TODO: Logs and Tests
+    stage_1_ai_evolution.create_maps(**evo_parameters)
+    stage_2_ai_pathfinding.find_shortest_path(**path_parameters)
+    stage_3_ai_forward_chain.run_production(**chain_parameters)
+    stage_4_view.create_gif(**view_parameters)

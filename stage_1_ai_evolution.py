@@ -134,8 +134,8 @@ def create_walls(
 
     Returns:
         Tuple[str, List[List[str]], bool]: (
-            name of the file that is going to be created
-            2D map that will be saved into file
+            name of the file that is going to be created,
+            2D map that will be saved into file,
             option to print created walls into console
         )
     """
@@ -185,8 +185,8 @@ def create_terrain(
 
     Returns:
         Tuple[str, List[List[str]], bool]: (
-            name of the file that is going to be created
-            2D map that will be saved into file
+            name of the file that is going to be created,
+            2D map that will be saved into file,
             option to print created walls into console
         )
     """
@@ -220,9 +220,9 @@ def create_properties(
 
     Returns:
         Tuple[str, List[List[str]], bool, str]: (
-            name of the file that is going to be created
-            2D map that will be saved into file
-            option to print created walls into console
+            name of the file that is going to be created,
+            2D map that will be saved into file,
+            option to print created walls into console,
             spacing format between coordinates
         )
     """
@@ -253,8 +253,8 @@ def _save_map(
             Defaults to "{:^3}".
     """
 
-    source_dir = Path(__file__).parents[0]
-    map_dir = Path(f"{source_dir}/data/maps")
+    src_dir = Path(__file__).parents[0]
+    map_dir = Path(f"{src_dir}/data/maps")
     map_dir.mkdir(parents=True, exist_ok=True)
 
     fname_path = Path(f"{map_dir}/{fname}.txt")
@@ -283,8 +283,8 @@ def load_map(fname: str, suffix: str) -> List[List[str]]:
         List[List[str]]: 2D map loaded from file
     """
 
-    source_dir = Path(__file__).parents[0]
-    fname_path = Path(f"{source_dir}/data/maps/{fname}{suffix}.txt")
+    src_dir = Path(__file__).parents[0]
+    fname_path = Path(f"{src_dir}/data/maps/{fname}{suffix}.txt")
     map_ = []
 
     try:
@@ -320,7 +320,7 @@ def _evolutionize(
 
     Returns:
         Tuple[List[List[str]], Dict[Tuple[int, int], int], str]: (
-            2D map filled with terrain (wall being -1, unraked being -2)
+            2D map filled with terrain (wall being -1, unraked being -2),
             raking paths that will be used for gif visualization
         )
     """
@@ -452,7 +452,7 @@ def _rake_map(
 
     Returns:
         Tuple[Dict[Tuple[int, int], int], Dict[Tuple[int, int], int]]: (
-            map tuple filled with terrain (map_tuple -> map_tuple_filled)
+            map tuple filled with terrain (map_tuple -> map_tuple_filled),
             raking paths that will be used for gif visualization
         )
     """
@@ -523,7 +523,7 @@ def _get_start_pos(
 
     Returns:
         Tuple[Tuple[int, int], Tuple[int, int]]: (
-            starting position coordinate
+            starting position coordinate,
             movement direction coordinate
         )
     """
@@ -762,11 +762,11 @@ def _save_solution(rake_paths: Dict[Tuple[int, int], int], fname: str) -> None:
         fname (str): name of pickle file into which the solution will be saved
     """
 
-    source_dir = Path(__file__).parents[0]
-    solutions_dir = Path(f"{source_dir}/data/solutions")
+    src_dir = Path(__file__).parents[0]
+    solutions_dir = Path(f"{src_dir}/data/solutions")
     Path(solutions_dir).mkdir(parents=True, exist_ok=True)
 
-    fname_path = Path(f"{solutions_dir}/{fname}_rake")
+    fname_path = Path(f"{solutions_dir}/{fname}_rake.pickle")
     with open(fname_path, "wb") as file:
         pickle.dump(rake_paths, file)
 

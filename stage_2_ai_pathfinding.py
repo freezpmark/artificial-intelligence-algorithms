@@ -51,7 +51,7 @@ class Node:
     """Represents discrete coordinate position on the 2D map.
 
     This class is being used in Map class. Map is composed of Nodes that
-    represent the space of the map.
+    represent discrete space of the map.
 
     Attributes:
         pos (Tuple[int, int]): node's position on the map
@@ -67,12 +67,12 @@ class Node:
 
     __slots__ = ("pos", "terr", "parent", "dist", "g", "h")
 
-    def __init__(self, position, terrain):
+    def __init__(self, position: Tuple[int, int], terrain: int):
         self.pos = position  # type: Tuple[int, int]
         self.terr = terrain  # type: int
 
         # variables to fill with pathfinding algorithm
-        self.parent = -1  # type: Tuple[int, int]
+        self.parent = (0, 0)  # type: Tuple[int, int]
         self.dist = maxsize  # type: int
 
         # helping A* heuristic variables
@@ -132,8 +132,8 @@ class Map:
         }  # type: Dict[str, Any]
         nodes = {}  # type: Dict[Tuple[int, int], Node]
 
-        source_dir = Path(__file__).parents[0]
-        fname_path = Path(f"{source_dir}/data/maps/{fname}_pro.txt")
+        src_dir = Path(__file__).parents[0]
+        fname_path = Path(f"{src_dir}/data/maps/{fname}_pro.txt")
         with open(fname_path, encoding="utf-8") as file:
             for i, row in enumerate(file):
                 for j, col in enumerate(row.split()):
@@ -186,7 +186,7 @@ def find_shortest_path(
             Options: "M", "D" (Manhattan or Diagonal + Manhattan)
         climb (bool): determines distance calculcation approach. If True,
             distance is measured as abs(current terrain number - next terrain
-            number)
+            number), otherwise it is just (next terrain number)
         algorithm (string): determines what algorithm to use to find the
             shortest path
             Options: "NP", "HK" (Naive Permutations or Held Karp)
@@ -265,8 +265,8 @@ def _validate_and_set_input_pars(
 
     Returns:
         Tuple[List[Tuple[int, int]], int, str]: (
-            movement coordinate options
-            amount of points to visit
+            movement coordinate options,
+            amount of points to visit,
             algorithm that is going to be used
         )
     """
@@ -630,11 +630,11 @@ def _save_solution(
         fname (str): name of pickle file into which solution will be saved
     """
 
-    source_dir = Path(__file__).parents[0]
-    solutions_dir = Path(f"{source_dir}/data/solutions")
+    src_dir = Path(__file__).parents[0]
+    solutions_dir = Path(f"{src_dir}/data/solutions")
     solutions_dir.mkdir(parents=True, exist_ok=True)
 
-    fname_path = Path(f"{solutions_dir}/{fname}_path")
+    fname_path = Path(f"{solutions_dir}/{fname}_path.pickle")
     with open(fname_path, "wb") as file:
         pickle.dump(routed_paths, file)
 
