@@ -10,7 +10,7 @@
 
 Produces GIF animation that visualizes: creation of map in Zen garden approach, shortest path visiting all destinations, deducing new facts from facts that are being collected at certain destinations. The intention behind this project was to improve Python coding skills while practising implementation of some of the most widely mentioned algorithms in AI that don't use machine learning techniques.
 
-## Usage:
+## 🧑‍💻 Usage:
  - `git clone https://github.com/freezpmark/artificial-intelligence-algorithms`
  - `cd artificial-intelligence-algorithms`
  - `pip install -r requirements.txt`
@@ -19,7 +19,7 @@ Produces GIF animation that visualizes: creation of map in Zen garden approach, 
 You can also run this on Discord. It uses `ai_algo.py` as cog file. To run it, call `<yourPrefix>run_ai`. The GIF file will be shown in the text channel where the command has ran.  
 Running the `main.py` or `ai_algo.py` causes to execute feature scripts below in order.
 
-## Features:
+## 🔥 Features:
  - [stage_1_ai_evolution](#stage_1_ai_evolution)
  - [stage_2_ai_pathfinding](#stage_2_ai_pathfinding)
  - [stage_3_ai_forward_chain](#stage_2_ai_pathfinding)
