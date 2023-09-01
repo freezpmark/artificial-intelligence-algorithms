@@ -1,8 +1,8 @@
-FirstParent1:
+Parent1:
 ?X is parent of ?Y, married ?X ?Z
 add ?Z is parent of ?Y
 
-SecondParent2:
+Parent2:
 ?X is parent of ?Y, married ?Z ?X
 add ?Z is parent of ?Y
 
