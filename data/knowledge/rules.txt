@@ -1,16 +1,16 @@
-FirstParent:
+FirstParent1:
 ?X is parent of ?Y, married ?X ?Z
 add ?Z is parent of ?Y
 
-SecondParent:
+SecondParent2:
 ?X is parent of ?Y, married ?Z ?X
 add ?Z is parent of ?Y
 
-Father:
+Father1:
 ?X is parent of ?Y, male ?X
 add ?X is father ?Y
 
-Mother:
+Mother1:
 ?X is parent of ?Y, female ?X
 add ?X is mother ?Y
 
