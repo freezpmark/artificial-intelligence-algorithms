@@ -57,3 +57,8 @@ Production system belongs to knowledge systems that use data to create new knowl
 ### stage_4_view (GIF file creation)
 ##### <b>Parameters:</b>
   - `skip_rake` - defines whether we want to skip raking part in the animation
+
+
+### Artificial Intelligence algorithms (May 2020 - Sep 2020)
+ - Developed app that generates GIF animation to visualize the outcome of prominent AI algorithms that are distinct from traditional machine learning approaches (A*, Held-Karp, Evolution, Production rule system, Dijkstra)
+ - Attained robustness and optimization through tests with 100% code coverage using Pytest, Pylint/Mypy score of over 94%, and thorough code documentation throughout the codebase
